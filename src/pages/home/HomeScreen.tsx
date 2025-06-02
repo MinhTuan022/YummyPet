@@ -1,7 +1,9 @@
+import { Button } from "antd";
 import BButton from "../../components/button/BButton";
 import BInput from "../../components/input/BInput";
 import { _router } from "../../context/routerSingleton";
 import { _global } from "../../global";
+import "./HomeScreen.scss"
 
 const HomeScreen = () => {
   const _openCart = () => {
@@ -33,6 +35,7 @@ const HomeScreen = () => {
           required
         />
         <button onClick={_openCart}>OpenCart</button>
+        <Button className="btn-test" title="hahaha" type="primary" >Hahahah</Button>
       </div>
     </>
   );

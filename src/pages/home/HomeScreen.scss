@@ -1,0 +1,9 @@
+.btn-test {
+  background-color: #4aff18;
+  color: white;
+
+  &:hover{
+    background-color: #ff404d !important;
+    color: #fff;
+  }
+}
