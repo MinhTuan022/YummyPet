@@ -57,6 +57,8 @@ import HomeScreen from "../pages/home/HomeScreen";
 import CartScreen from "../pages/cart/CartScreen";
 import NotFound from "../pages/notFound/NotFound";
 import Layout from "../layouts/Layout";
+import Login from "../pages/auth/Login";
+import SignUp from "../pages/auth/SignUp";
 
 export const router = createBrowserRouter([
   {
@@ -67,8 +69,9 @@ export const router = createBrowserRouter([
       </CustomRouterProvider>
     ),
     children: [
-      { path: "/", element: <HomeScreen /> },
+      { path: "/", element: <Login /> },
       { path: "/cart/:id", element: <CartScreen /> },
+      { path: "/sign-up", element: <SignUp /> },
 
     ],
   },

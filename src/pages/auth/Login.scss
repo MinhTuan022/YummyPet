@@ -1,0 +1,158 @@
+.screen {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100vw;
+  background-color: white;
+  flex-direction: column;
+  padding-bottom: 50px;
+}
+
+.thumbnail {
+  margin: 50px;
+}
+
+.thumbnail img {
+  border-radius: 10px;
+}
+
+
+.card {
+  width: 60%;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 32px 32px;
+
+  .title {
+    text-align: center;
+    color: #415b80;
+    font-weight: 700;
+    font-size: 40px !important;
+    margin-bottom: 32px !important;
+  }
+}
+
+.custom-input {
+  background-color: #f4f5fb !important;
+  border: none !important;
+  border-radius: 30px !important;
+  padding: 16px 20px !important;
+  font-size: 16px !important;
+  color: #6e7191 !important;
+  height: auto !important;
+
+  &::placeholder {
+    color: #6e7191 !important;
+    font-size: 16px !important;
+  }
+}
+
+.links-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 24px 0 24px 0;
+
+  .link-left {
+    .forgot-link {
+      color: #6e7191;
+      text-decoration: none;
+      font-size: 16px;
+
+      &:hover {
+        color: #ff8080;
+      }
+    }
+  }
+
+  .link-right {
+    .back-link {
+      color: #6e7191;
+      text-decoration: none;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+
+      .back-icon {
+        font-size: 12px;
+      }
+
+      &:hover {
+        color: #ff8080;
+      }
+    }
+  }
+}
+
+.button-container {
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.btn-signin.ant-btn-primary {
+  background: #ff8080 !important;
+  border: none !important;
+  border-radius: 25px !important;
+  height: 50px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    background: #415b80 !important;
+  }
+}
+
+.btn-create-account.ant-btn {
+  background-color: #415b80 !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 25px !important;
+  height: 50px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  transition: all 0.3s ease !important;
+
+  &:hover {
+    background-color: #ff8080 !important;
+    color: #ffffff !important;
+  }
+}
+
+.ant-form-item {
+  margin-bottom: 20px !important;
+
+  &:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    max-width: 100%;
+    padding: 32px 24px;
+    margin: 0 16px;
+
+    .title {
+      font-size: 28px !important;
+    }
+  }
+
+  .links-row {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .btn-signin,
+  .btn-create-account {
+    height: 48px !important;
+    font-size: 15px !important;
+  }
+}

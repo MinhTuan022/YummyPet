@@ -1,0 +1,33 @@
+.login-link {
+    color: #6e7191;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 700;
+
+    &:hover {
+        color: #ff8080;
+    }
+}
+
+.button-container {
+    margin-top: 16px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}
+
+.btn-create.ant-btn-primary {
+    background: #ff8080 !important;
+    border: none !important;
+    border-radius: 25px !important;
+    height: 50px !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.5px !important;
+    transition: all 0.3s ease !important;
+
+    &:hover {
+        background: #415b80 !important;
+    }
+}
