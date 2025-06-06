@@ -21,13 +21,12 @@ export const router = createBrowserRouter([
       </CustomRouterProvider>
     ),
     children: [
-      { path: "/", element: <Login /> },
+      { path: "/", element: <HomeScreen /> },
       { path: "/cart/:id", element: <CartScreen /> },
-      { path: "/sign-up", element: <SignUp /> }
-
+      { path: "/sign-up", element: <SignUp /> },
     ],
   },
-   {
+  {
     path: "/admin",
     element: (
       <CustomRouterProvider>
@@ -40,15 +39,11 @@ export const router = createBrowserRouter([
         // element: (
         //   <ProtectedRoute element={<DashBoard />} allowedRoles={["ADMIN"]} />
         // ),
-        element: (
-          <DashBoard />
-        ),
+        element: <DashBoard />,
       },
       {
         path: "all-pets",
-        element: (
-          <PetPage />
-        ),
+        element: <PetPage />,
       },
     ],
   },
@@ -59,4 +54,3 @@ export const router = createBrowserRouter([
     element: <NotFound />,
   },
 ]);
-
