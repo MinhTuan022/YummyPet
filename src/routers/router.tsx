@@ -19,9 +19,10 @@ export const router = createBrowserRouter([
       </CustomRouterProvider>
     ),
     children: [
-      { path: "/", element: <Login /> },
+      { path: "/", element: <HomeScreen /> },
       { path: "/cart/:id", element: <CartScreen /> },
       { path: "/sign-up", element: <SignUp /> },
+      { path: "/login", element: <Login /> },
 
       {
         path: "/admin/dashboard",

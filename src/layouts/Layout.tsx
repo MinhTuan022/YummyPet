@@ -3,7 +3,6 @@ import { Link, Outlet, useLocation } from "react-router-dom";
 import {
   Layout,
   Button,
-  Badge,
   Menu,
   Breadcrumb,
   Space,
@@ -63,7 +62,11 @@ const AppLayout = () => {
   const navItems = [
     {
       key: 'home',
-      label: 'Trang chủ',
+      label: (
+        <Link to="/">
+          Trang chủ
+        </Link>
+      ),
     },
     {
       key: 'product',
@@ -168,7 +171,7 @@ const AppLayout = () => {
                   icon={<UserOutlined />}
                   className="action-button"
                 >
-                  <Link to={'/'}>
+                  <Link to={'/login'}>
                     <div className="action-text">
                       <div>Tài Khoản</div>
                       <div className="sub-text">Đăng nhập</div>
