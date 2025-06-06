@@ -33,6 +33,10 @@ class RouterSingleton {
     this.navigateTo("/login");
   }
 
+  public openAny(path: string) {
+    this.navigateTo(path);
+  }
+
   // Hàm điều hướng chung
   private navigateTo(path: string, options?: { state?: any }) {
     if (this.navigate) {

@@ -1,0 +1,12 @@
+.admin-layout{
+  display: flex;
+  overflow: hidden;
+  height: 100vh;
+
+  .admin-content{
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background-color: #F9FAFB;
+  }
+}
