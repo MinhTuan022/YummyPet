@@ -400,6 +400,8 @@ const POSOrder: React.FC = () => {
         padding: "24px",
         backgroundColor: "#f5f5f5",
         minHeight: "100vh",
+        width: "100%",
+        boxSizing: "border-box"
       }}
     >
       <Title level={2} style={{ textAlign: "center", marginBottom: "24px" }}>

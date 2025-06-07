@@ -7,6 +7,7 @@
   transition: width 0.3s ease;
   position: relative;
   border-right: 1px solid #efeff4;
+  flex-shrink: 0;
 }
 
 .admin-sidebar.collapsed {
