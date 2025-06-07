@@ -1,0 +1,702 @@
+// ========================================
+// REPORTPAGE.SCSS - Pet Store Report Styles
+// ========================================
+
+// ========================================
+// 1. VARIABLES & MIXINS
+// ========================================
+$primary-color: #1890ff;
+$secondary-color: #f0f2f5;
+$success-color: #52c41a;
+$warning-color: #faad14;
+$error-color: #f5222d;
+$text-primary: #262626;
+$text-secondary: #8c8c8c;
+$border-color: #d9d9d9;
+$shadow-light: 0 2px 8px rgba(0, 0, 0, 0.08);
+$shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.12);
+$shadow-heavy: 0 8px 24px rgba(0, 0, 0, 0.16);
+$border-radius: 8px;
+$transition: all 0.3s ease;
+
+// Responsive breakpoints
+$xs: 480px;
+$sm: 576px;
+$md: 768px;
+$lg: 992px;
+$xl: 1200px;
+$xxl: 1600px;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin card-shadow {
+  box-shadow: $shadow-light;
+  transition: $transition;
+  
+  &:hover {
+    box-shadow: $shadow-medium;
+    transform: translateY(-2px);
+  }
+}
+
+@mixin gradient-bg($color1, $color2) {
+  background: linear-gradient(135deg, $color1 0%, $color2 100%);
+}
+
+@mixin responsive($breakpoint) {
+  @media (max-width: $breakpoint) {
+    @content;
+  }
+}
+
+// ========================================
+// 2. MAIN CONTAINER
+// ========================================
+.pet-store-report {
+  height: 100vh;
+  // background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 20px;
+overflow: auto;
+  @include responsive($md) {
+    padding: 10px;
+  }
+
+  .reports-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    box-shadow: $shadow-heavy;
+    overflow: hidden;
+  }
+}
+
+// ========================================
+// 3. HEADER SECTION
+// ========================================
+.report-header-section {
+  background: linear-gradient(135deg, $primary-color 0%, #096dd9 100%);
+  padding: 40px 30px;
+  text-align: center;
+  color: white;
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .main-title {
+    color: white !important;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 1;
+
+    @include responsive($md) {
+      font-size: 2rem;
+    }
+
+    @include responsive($sm) {
+      font-size: 1.5rem;
+    }
+  }
+
+  .sub-title {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 1.1rem;
+    font-weight: 400;
+    position: relative;
+    z-index: 1;
+
+    @include responsive($sm) {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// ========================================
+// 4. REPORT CONTROLS
+// ========================================
+.report-controls {
+  padding: 30px;
+  background: #fafafa;
+  border-bottom: 1px solid $border-color;
+
+  .controls-title {
+    color: $text-primary !important;
+    margin-bottom: 24px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 0;
+      width: 60px;
+      height: 3px;
+      background: $primary-color;
+      border-radius: 2px;
+    }
+  }
+
+  .filter-section {
+    .ant-row {
+      @include responsive($md) {
+        flex-direction: column;
+        gap: 16px;
+      }
+    }
+
+    .ant-space {
+      @include responsive($sm) {
+        width: 100%;
+        justify-content: space-between;
+      }
+    }
+
+    .ant-btn {
+      border-radius: $border-radius;
+      font-weight: 500;
+      transition: $transition;
+      
+      &.ant-btn-primary {
+        @include gradient-bg($primary-color, #096dd9);
+        border: none;
+        box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+        }
+      }
+
+      &:not(.ant-btn-primary) {
+        border-color: $border-color;
+        color: $text-primary;
+
+        &:hover {
+          border-color: $primary-color;
+          color: $primary-color;
+        }
+      }
+    }
+
+    .ant-select {
+      min-width: 180px;
+      
+      @include responsive($sm) {
+        width: 100%;
+      }
+    }
+
+    .ant-picker {
+      border-radius: $border-radius;
+      
+      @include responsive($sm) {
+        width: 100%;
+      }
+    }
+  }
+}
+
+// ========================================
+// 5. REPORT CONTENT
+// ========================================
+.report-content {
+  padding: 30px;
+
+  .report-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: $border-radius;
+    color: white;
+
+    h1 {
+      color: white !important;
+      font-size: 2.2rem;
+      margin-bottom: 16px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+
+      @include responsive($md) {
+        font-size: 1.8rem;
+      }
+    }
+
+    h3 {
+      color: rgba(255, 255, 255, 0.95) !important;
+      font-size: 1.3rem;
+      margin-bottom: 12px;
+
+      @include responsive($md) {
+        font-size: 1.1rem;
+      }
+    }
+
+    .report-date {
+      color: rgba(255, 255, 255, 0.85) !important;
+      font-size: 0.95rem;
+    }
+  }
+
+  .report-section {
+    margin-bottom: 50px;
+
+    .section-title {
+      color: $text-primary !important;
+      font-size: 1.4rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      padding: 12px 0;
+      border-bottom: 2px solid $primary-color;
+      position: relative;
+
+      &::before {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100px;
+        height: 2px;
+        background: linear-gradient(90deg, $primary-color, transparent);
+      }
+    }
+  }
+}
+
+// ========================================
+// 6. STATISTICS CARDS
+// ========================================
+.overview-stats {
+  .stat-card {
+    @include card-shadow;
+    border-radius: $border-radius;
+    border: none;
+    overflow: hidden;
+    position: relative;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, $primary-color, $success-color);
+    }
+
+    .ant-card-body {
+      padding: 24px;
+    }
+
+    .ant-statistic {
+      .ant-statistic-title {
+        color: $text-secondary;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 8px;
+      }
+
+      .ant-statistic-content {
+        color: $text-primary;
+        font-size: 1.8rem;
+        font-weight: 700;
+
+        .ant-statistic-content-prefix {
+          color: $primary-color;
+          margin-right: 8px;
+        }
+      }
+    }
+
+    // Individual card colors
+    &:nth-child(1) {
+      &::before {
+        background: linear-gradient(90deg, $primary-color, #40a9ff);
+      }
+    }
+
+    &:nth-child(2) {
+      &::before {
+        background: linear-gradient(90deg, $success-color, #73d13d);
+      }
+    }
+
+    &:nth-child(3) {
+      &::before {
+        background: linear-gradient(90deg, $warning-color, #ffd666);
+      }
+    }
+
+    &:nth-child(4) {
+      &::before {
+        background: linear-gradient(90deg, #722ed1, #b37feb);
+      }
+    }
+  }
+}
+
+// ========================================
+// 7. TABLES
+// ========================================
+.report-table {
+  border-radius: $border-radius;
+  overflow: hidden;
+  box-shadow: $shadow-light;
+
+  .ant-table {
+    border-radius: $border-radius;
+
+    .ant-table-thead > tr > th {
+      // background: linear-gradient(135deg, $primary-color, #096dd9);
+      // color: white;
+      font-weight: 600;
+      text-align: center;
+      border: none;
+      padding: 16px 12px;
+      font-size: 0.9rem;
+
+      &:first-child {
+        border-top-left-radius: $border-radius;
+      }
+
+      &:last-child {
+        border-top-right-radius: $border-radius;
+      }
+    }
+
+    .ant-table-tbody > tr {
+      transition: $transition;
+
+      &:hover {
+        background-color: rgba(24, 144, 255, 0.05) !important;
+      }
+
+      > td {
+        padding: 12px;
+        border-bottom: 1px solid #f0f0f0;
+        text-align: center;
+        font-size: 0.9rem;
+
+        &:first-child {
+          font-weight: 600;
+          color: $primary-color;
+        }
+      }
+
+      &:last-child > td {
+        border-bottom: none;
+      }
+    }
+  }
+
+  // Responsive table
+  @include responsive($md) {
+    .ant-table {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// ========================================
+// 8. TAGS
+// ========================================
+.ant-tag {
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-weight: 500;
+  font-size: 0.8rem;
+  border: none;
+
+  &.ant-tag-green {
+    background: linear-gradient(135deg, #52c41a, #73d13d);
+    color: white;
+  }
+
+  &.ant-tag-orange {
+    background: linear-gradient(135deg, #faad14, #ffd666);
+    color: white;
+  }
+
+  &.ant-tag-red {
+    background: linear-gradient(135deg, #f5222d, #ff7875);
+    color: white;
+  }
+
+  &.ant-tag-blue {
+    background: linear-gradient(135deg, #1890ff, #40a9ff);
+    color: white;
+  }
+}
+
+// ========================================
+// 9. REPORT FOOTER
+// ========================================
+.report-footer {
+  text-align: center;
+  padding: 30px;
+  background: #fafafa;
+  border-top: 1px solid $border-color;
+  margin-top: 40px;
+
+  .footer-text {
+    color: $text-secondary !important;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    display: block;
+    margin-bottom: 4px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// ========================================
+// 10. ANIMATIONS
+// ========================================
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Apply animations
+.report-section {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.stat-card {
+  animation: fadeInUp 0.6s ease-out;
+  
+  &:nth-child(1) { animation-delay: 0.1s; }
+  &:nth-child(2) { animation-delay: 0.2s; }
+  &:nth-child(3) { animation-delay: 0.3s; }
+  &:nth-child(4) { animation-delay: 0.4s; }
+}
+
+// ========================================
+// 11. PRINT STYLES
+// ========================================
+@media print {
+  .pet-store-report {
+    background: white !important;
+    padding: 0 !important;
+    
+    .reports-content {
+      box-shadow: none !important;
+      border-radius: 0 !important;
+    }
+    
+    .report-controls {
+      display: none !important;
+    }
+    
+    .report-header-section {
+      background: white !important;
+      color: black !important;
+      
+      .main-title,
+      .sub-title {
+        color: black !important;
+      }
+    }
+    
+    .report-content {
+      .report-header {
+        background: white !important;
+        color: black !important;
+        border: 2px solid black;
+        
+        h1, h3, .report-date {
+          color: black !important;
+        }
+      }
+    }
+    
+    .ant-table-thead > tr > th {
+      background: #f0f0f0 !important;
+      color: black !important;
+    }
+    
+    .stat-card {
+      box-shadow: none !important;
+      border: 1px solid #ddd !important;
+    }
+  }
+}
+
+// ========================================
+// 12. RESPONSIVE DESIGN
+// ========================================
+@include responsive($xl) {
+  .pet-store-report {
+    .reports-content {
+      margin: 0 20px;
+    }
+  }
+}
+
+@include responsive($lg) {
+  .overview-stats {
+    .ant-col {
+      margin-bottom: 16px;
+    }
+  }
+  
+  .report-controls {
+    .filter-section {
+      .ant-row {
+        flex-direction: column;
+        gap: 20px;
+        
+        .ant-col {
+          width: 100%;
+        }
+      }
+    }
+  }
+}
+
+@include responsive($md) {
+  .report-content {
+    padding: 20px;
+  }
+  
+  .report-header-section {
+    padding: 30px 20px;
+  }
+  
+  .report-controls {
+    padding: 20px;
+  }
+}
+
+@include responsive($sm) {
+  .pet-store-report {
+    padding: 10px;
+  }
+  
+  .report-content {
+    padding: 15px;
+  }
+  
+  .report-header-section {
+    padding: 20px 15px;
+  }
+  
+  .report-controls {
+    padding: 15px;
+  }
+  
+  .report-section {
+    margin-bottom: 30px;
+  }
+}
+
+// ========================================
+// 13. UTILITY CLASSES
+// ========================================
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-1 { margin-bottom: 8px !important; }
+.mb-2 { margin-bottom: 16px !important; }
+.mb-3 { margin-bottom: 24px !important; }
+.mb-4 { margin-bottom: 32px !important; }
+
+.mt-0 { margin-top: 0 !important; }
+.mt-1 { margin-top: 8px !important; }
+.mt-2 { margin-top: 16px !important; }
+.mt-3 { margin-top: 24px !important; }
+.mt-4 { margin-top: 32px !important; }
+
+.p-0 { padding: 0 !important; }
+.p-1 { padding: 8px !important; }
+.p-2 { padding: 16px !important; }
+.p-3 { padding: 24px !important; }
+.p-4 { padding: 32px !important; }
+
+// ========================================
+// 14. HOVER EFFECTS
+// ========================================
+.report-table {
+  .ant-table-tbody > tr {
+    &:hover {
+      background-color: rgba(24, 144, 255, 0.05) !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.ant-btn {
+  &:hover {
+    transform: translateY(-2px);
+  }
+}
+
+// ========================================
+// 15. SCROLLBAR STYLING
+// ========================================
+.report-content {
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+    
+    &:hover {
+      background: #a8a8a8;
+    }
+  }
+}

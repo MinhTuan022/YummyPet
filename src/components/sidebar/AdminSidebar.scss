@@ -1,22 +1,19 @@
 .admin-sidebar {
   width: 280px;
   height: 100vh;
-  // background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #737791;
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
   position: relative;
-  // box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #efeff4;
 }
 
 .admin-sidebar.collapsed {
   width: 70px;
-  // overflow: hidden;
-  .logo{
+  .logo {
     display: none;
   }
-
 }
 
 .sidebar-header {
@@ -226,7 +223,7 @@
 .user-avatar {
   // width: 40px;
   // height: 40px;
-  border-radius:100%;
+  border-radius: 100%;
   overflow: hidden;
   display: flex;
   // flex-shrink: 0;

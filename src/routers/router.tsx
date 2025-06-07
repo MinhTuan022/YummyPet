@@ -10,7 +10,17 @@ import ProtectedRoute from "./ProtectedRoute";
 import Unauthorized from "../pages/Unauthorized";
 import AdminLayout from "../layouts/AdminLayout";
 import PetPage from "../pages/admin/pet/PetPage";
-import DashBoard from "../pages/admin/dashboard/DashBoard";
+import DashBoard from "../pages/admin/dashboard/Dashboard";
+import AddProduct from "../pages/admin/products/AddProduct";
+import AddPet from "../pages/admin/pet/AddPet";
+import OrderPage from "../pages/admin/order/OrderPage";
+import CustomerPage from "../pages/admin/customer/CustomerPage";
+import ServicePage from "../pages/admin/service/ServicePage";
+import EmployeePage from "../pages/admin/employee/EmployeePage";
+import ReportPage from "../pages/admin/report/ReportPage";
+import POSOrder from "../pages/admin/inStore/POSOrder";
+import POSService from "../pages/admin/inStore/POSService";
+
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +34,7 @@ export const router = createBrowserRouter([
       { path: "/", element: <HomeScreen /> },
       { path: "/cart/:id", element: <CartScreen /> },
       { path: "/sign-up", element: <SignUp /> },
+      { path: "/login", element: <Login /> },
     ],
   },
   {
@@ -42,8 +53,44 @@ export const router = createBrowserRouter([
         element: <DashBoard />,
       },
       {
-        path: "all-pets",
+        path: "pets",
         element: <PetPage />,
+      },
+      {
+        path: "add-product",
+        element: <AddProduct />,
+      },
+      {
+        path: "pets/add",
+        element: <AddPet />,
+      },
+      {
+        path: "orders",
+        element: <OrderPage />,
+      },
+      {
+        path: "customers",
+        element: <CustomerPage />,
+      },
+      {
+        path: "services",
+        element: <ServicePage />,
+      },
+      {
+        path: "staff",
+        element: <EmployeePage />,
+      },
+      {
+        path: "reports",
+        element: <ReportPage />,
+      },
+      {
+        path: "in-store/orders",
+        element: <POSOrder />,
+      },
+      {
+        path: "in-store/services",
+        element: <POSService />,
       },
     ],
   },

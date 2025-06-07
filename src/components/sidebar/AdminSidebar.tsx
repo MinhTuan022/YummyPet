@@ -15,6 +15,8 @@ import {
   ChevronDown,
   ChevronRight,
   LogOut,
+  HandHelping,
+  Store,
 } from "lucide-react";
 import "./AdminSidebar.scss";
 import images from "../../res/images";
@@ -39,6 +41,29 @@ const AdminSidebar = () => {
       icon: Home,
       label: "Dashboard",
       path: "/admin/dashboard",
+    },
+     {
+      key: "health",
+      icon: Store,
+      label: "Cửa hàng",
+      hasSubmenu: true,
+      submenu: [
+        {
+          key: "health-records",
+          label: "Đơn hàng tại shop",
+          path: "/admin/in-store/orders",
+        },
+        {
+          key: "vaccinations",
+          label: "Dịch vụ tại shop",
+          path: "/admin/in-store/services",
+        },
+        // {
+        //   key: "treatments",
+        //   label: "Điều trị",
+        //   path: "/admin/health/treatments",
+        // },
+      ],
     },
     {
       key: "pets",
@@ -88,40 +113,18 @@ const AdminSidebar = () => {
       ],
     },
     {
-      key: "appointments",
-      icon: Calendar,
-      label: "Lịch hẹn",
-      path: "/admin/appointments",
+      key: "service",
+      icon: HandHelping,
+      label: "Dịch vụ",
+      path: "/admin/services",
     },
-    {
-      key: "health",
-      icon: Stethoscope,
-      label: "Chăm sóc sức khỏe",
-      hasSubmenu: true,
-      submenu: [
-        {
-          key: "health-records",
-          label: "Hồ sơ sức khỏe",
-          path: "/admin/health/records",
-        },
-        {
-          key: "vaccinations",
-          label: "Tiêm chủng",
-          path: "/admin/health/vaccinations",
-        },
-        {
-          key: "treatments",
-          label: "Điều trị",
-          path: "/admin/health/treatments",
-        },
-      ],
-    },
-    {
-      key: "medicines",
-      icon: Pill,
-      label: "Thuốc & Vitamin",
-      path: "/admin/medicines",
-    },
+   
+    // {
+    //   key: "medicines",
+    //   icon: Pill,
+    //   label: "Thuốc & Vitamin",
+    //   path: "/admin/medicines",
+    // },
     {
       key: "staff",
       icon: UserCheck,
@@ -134,12 +137,12 @@ const AdminSidebar = () => {
       label: "Báo cáo",
       path: "/admin/reports",
     },
-    {
-      key: "documents",
-      icon: FileText,
-      label: "Tài liệu",
-      path: "/admin/documents",
-    },
+    // {
+    //   key: "documents",
+    //   icon: FileText,
+    //   label: "Tài liệu",
+    //   path: "/admin/documents",
+    // },
     {
       key: "settings",
       icon: Settings,
@@ -161,7 +164,7 @@ const AdminSidebar = () => {
 
   const _openMenu = (menuKey: string, path: string) => {
     setActiveMenu(menuKey);
-    _router.openAny(menuKey);
+    _router.openAny(path);
   };
 
   return (
@@ -218,7 +221,6 @@ const AdminSidebar = () => {
                   </div>
                 </div>
 
-                {/* Submenu */}
                 {item.hasSubmenu && isExpanded && !isCollapsed && (
                   <ul className="submenu">
                     {item.submenu.map((subItem) => (
@@ -243,7 +245,6 @@ const AdminSidebar = () => {
         </ul>
       </nav>
 
-      {/* User Profile & Logout */}
       <div className="sidebar-footer">
         <div className="user-profile">
           <div className="user-avatar">

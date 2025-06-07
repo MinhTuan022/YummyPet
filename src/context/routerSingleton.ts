@@ -33,6 +33,10 @@ class RouterSingleton {
     this.navigateTo("/login");
   }
 
+  public openAddPet() {
+    this.navigateTo("/add-pet");
+  }
+
   public openAny(path: string) {
     this.navigateTo(path);
   }

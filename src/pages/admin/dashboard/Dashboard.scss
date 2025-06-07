@@ -1,436 +1,180 @@
-// Variables
-$primary-color: #4f46e5;
-$secondary-color: #06b6d4;
-$success-color: #10b981;
-$warning-color: #f59e0b;
-$danger-color: #ef4444;
-$purple-color: #8b5cf6;
+.pet-store-dashboard {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
 
-$background-color: #f8fafc;
-$card-background: #ffffff;
-$text-primary: #1e293b;
-$text-secondary: #64748b;
-$border-color: #e2e8f0;
+.dashboard-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 16px 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 
-$border-radius: 12px;
-$box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-$box-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+.dashboard-header .ant-typography {
+  margin: 0;
+  color: #1a1a1a;
+}
 
-// Mixins
-@mixin flex-center {
+.dashboard-content {
+  background: #ffffff;
+
+  padding: 24px;
+}
+
+.stats-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.stats-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+}
+
+.stats-card .ant-statistic-title {
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.stats-card .ant-statistic-content {
+  color: #1a1a1a;
+}
+
+.growth-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  margin-top: 8px;
+  color: #52c41a;
+  font-size: 12px;
 }
 
-@mixin card-style {
-  background: $card-background;
-  border-radius: $border-radius;
-  box-shadow: $box-shadow;
-  padding: 1.5rem;
+.chart-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
-// Main Dashboard Styles
-.dashboard {
-  background-color: $background-color;
-  // min-height: 100vh;
-  padding: 2rem;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-  .dashboard-header {
-    margin-bottom: 2rem;
-    
-    h1 {
-      color: $text-primary;
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0;
-    }
-  }
-
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
-  }
-
-  .section {
-    @include card-style;
-    
-    h2 {
-      color: $text-primary;
-      font-size: 1.25rem;
-      font-weight: 600;
-      margin: 0 0 1rem 0;
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-
-      p {
-        color: $text-secondary;
-        font-size: 0.875rem;
-        margin: 0.25rem 0 0 0;
-      }
-
-      .report-btn {
-        background: $primary-color;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 8px;
-        font-size: 0.875rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        transition: background-color 0.2s;
-
-        &:hover {
-          background: darken($primary-color, 10%);
-        }
-      }
-    }
-  }
-
-  // Sales Summary Section
-  .sales-summary {
-    grid-column: span 8;
-
-    .metrics-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 1rem;
-    }
-
-    .metric-card {
-      padding: 1rem;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      transition: transform 0.2s;
-
-      &:hover {
-        transform: translateY(-2px);
-      }
-
-      &.total-sales {
-        background: linear-gradient(135deg, #fce7f3 0%, #f3e8ff 100%);
-      }
-
-      &.total-order {
-        background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-      }
-
-      &.product-sold {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-      }
-
-      &.new-customers {
-        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-      }
-
-      .metric-icon {
-        font-size: 1.5rem;
-        width: 48px;
-        height: 48px;
-        @include flex-center;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.8);
-      }
-
-      .metric-info {
-        flex: 1;
-
-        h3 {
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: $text-primary;
-          margin: 0;
-        }
-
-        p {
-          color: $text-secondary;
-          font-size: 0.875rem;
-          margin: 0.25rem 0;
-        }
-
-        .change {
-          font-size: 0.75rem;
-          padding: 0.125rem 0.5rem;
-          border-radius: 4px;
-
-          &.positive {
-            background: #dcfce7;
-            color: #166534;
-          }
-        }
-      }
-    }
-  }
-
-  // Visitor Insights Section
-  .visitor-insights {
-    grid-column: span 4;
-
-    .chart-container {
-      height: 250px;
-      position: relative;
-    }
-  }
-
-  // Total Revenue Section
-  .total-revenue {
-    grid-column: span 6;
-
-    .chart-container {
-      height: 300px;
-    }
-  }
-
-  // Customer Satisfaction Section
-  .customer-satisfaction {
-    grid-column: span 3;
-
-    .chart-container {
-      height: 250px;
-    }
-
-    .satisfaction-metrics {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 1rem;
-      padding-top: 1rem;
-      border-top: 1px solid $border-color;
-
-      .metric {
-        text-align: center;
-
-        .label {
-          display: block;
-          color: $text-secondary;
-          font-size: 0.75rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .value {
-          font-size: 1rem;
-          font-weight: 600;
-          color: $text-primary;
-        }
-      }
-    }
-  }
-
-  // Target vs Reality Section
-  .target-reality {
-    grid-column: span 3;
-
-    .chart-container {
-      height: 250px;
-    }
-  }
-
-  // Top Products Section
-  .top-products {
-    grid-column: span 4;
-
-    .products-list {
-      .product-item {
-        display: flex;
-        align-items: center;
-        padding: 1rem 0;
-        border-bottom: 1px solid $border-color;
-
-        &:last-child {
-          border-bottom: none;
-        }
-
-        .product-number {
-          width: 32px;
-          height: 32px;
-          @include flex-center;
-          background: $background-color;
-          border-radius: 50%;
-          font-weight: 600;
-          color: $text-secondary;
-          font-size: 0.875rem;
-          margin-right: 1rem;
-        }
-
-        .product-details {
-          flex: 1;
-
-          h4 {
-            margin: 0 0 0.5rem 0;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: $text-primary;
-          }
-
-          .progress-bar {
-            height: 6px;
-            background: $background-color;
-            border-radius: 3px;
-            overflow: hidden;
-
-            .progress-fill {
-              height: 100%;
-              background: linear-gradient(90deg, $primary-color, $secondary-color);
-              transition: width 0.3s ease;
-            }
-          }
-        }
-
-        .product-sales {
-          font-weight: 600;
-          color: $text-primary;
-          font-size: 0.875rem;
-        }
-      }
-    }
-  }
-
-  // Sales Mapping Section
-  .sales-mapping {
-    grid-column: span 4;
-
-    .world-map {
-      height: 200px;
-      @include flex-center;
-
-      .map-svg {
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        border-radius: 8px;
-
-        circle {
-          cursor: pointer;
-          transition: r 0.2s;
-
-          &:hover {
-            r: 15;
-          }
-        }
-      }
-    }
-  }
-
-  // Volume vs Service Level Section
-  .volume-service {
-    grid-column: span 4;
-
-    .chart-container {
-      height: 200px;
-    }
-  }
-
-  // Legend Styles
-  .legend {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    flex-wrap: wrap;
-
-    .legend-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.75rem;
-      color: $text-secondary;
-
-      .legend-color {
-        width: 12px;
-        height: 12px;
-        border-radius: 2px;
-      }
-    }
-  }
+.chart-card .ant-card-head {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.5);
 }
 
-// Responsive Design
-@media (max-width: 1200px) {
-  .dashboard {
-    .dashboard-grid {
-      grid-template-columns: repeat(8, 1fr);
-    }
+.chart-card .ant-card-head-title {
+  color: #1a1a1a;
+  font-weight: 600;
+}
 
-    .sales-summary {
-      grid-column: span 8;
+.table-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
 
-      .metrics-row {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-      }
-    }
+.table-card .ant-table {
+  background: transparent;
+}
 
-    .visitor-insights {
-      grid-column: span 4;
-    }
+.table-card .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.5);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
 
-    .total-revenue {
-      grid-column: span 4;
-    }
+.table-card .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
 
-    .customer-satisfaction,
-    .target-reality {
-      grid-column: span 4;
-    }
+.table-card .ant-table-tbody > tr:hover > td {
+  background: rgba(255, 255, 255, 0.5);
+}
 
-    .top-products,
-    .sales-mapping,
-    .volume-service {
-      grid-column: span 4;
-    }
-  }
+.filter-section {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.activity-timeline {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.customer-list {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.service-progress {
+  margin-bottom: 16px;
+}
+
+.service-progress .ant-progress-text {
+  color: #1a1a1a;
+  font-weight: 500;
 }
 
 @media (max-width: 768px) {
-  .dashboard {
-    padding: 1rem;
+  .dashboard-content {
+    padding: 12px;
+  }
 
-    .dashboard-grid {
-      grid-template-columns: 1fr;
-      gap: 1rem;
-    }
+  .filter-section {
+    padding: 12px;
+  }
 
-    .section {
-      grid-column: span 1 !important;
-    }
-
-    .sales-summary {
-      .metrics-row {
-        grid-template-columns: 1fr;
-      }
-    }
+  .stats-card,
+  .chart-card,
+  .table-card,
+  .activity-timeline,
+  .customer-list {
+    margin-bottom: 16px;
   }
 }
 
-// Chart customization
+.ant-card-body {
+  padding: 24px;
+}
+
+.ant-statistic-content-value {
+  font-weight: 700;
+}
+
 .recharts-wrapper {
-  .recharts-cartesian-grid-horizontal line,
-  .recharts-cartesian-grid-vertical line {
-    stroke: #f1f5f9;
-  }
-
-  .recharts-text {
-    fill: $text-secondary;
-    font-size: 12px;
-  }
-
-  .recharts-tooltip-wrapper {
-    .recharts-default-tooltip {
-      background: white !important;
-      border: 1px solid $border-color !important;
-      border-radius: 8px !important;
-      box-shadow: $box-shadow-lg !important;
-    }
-  }
+  margin: 0 auto;
 }
