@@ -1,5 +1,6 @@
 package com.example.yummypet.entity;
 
+import com.example.yummypet.enums.PaymentStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -56,7 +57,7 @@ public class ServiceOrder {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_status")
-    private Order.PaymentStatus paymentStatus = Order.PaymentStatus.pending;
+    private PaymentStatus paymentStatus = PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")

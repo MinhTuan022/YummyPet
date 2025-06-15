@@ -8,6 +8,7 @@ import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,15 @@ public class Employee {
 
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
+
+    @Column(name = "gender", length = 10)
+    private String gender;
+
+    @Column(name = "address", length = 255)
+    private String address;
+
+    @Column(name = "date_of_birth")
+    private LocalDate dateOfBirth;
 
     @Column(name = "phone", length = 15)
     private String phone;

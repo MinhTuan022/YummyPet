@@ -1,9 +1,8 @@
 package com.example.yummypet.entity;
 
+import com.example.yummypet.enums.DiscountType;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -12,65 +11,69 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+
 @Entity
 @Table(name = "vouchers")
 @Data
-@EqualsAndHashCode(exclude = {"orders", "serviceOrders"})
-@ToString(exclude = {"orders", "serviceOrders"})
+@NoArgsConstructor
+@AllArgsConstructor
 public class Voucher {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    @Column(name = "code", unique = true, nullable = false, length = 50)
     private String code;
 
-    @Column(name = "name", nullable = false, length = 200)
-    private String name;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "discount_type", nullable = false)
-    private DiscountType discountType;
-
-    @Column(name = "discount_value", nullable = false, precision = 15, scale = 0)
-    private BigDecimal discountValue;
-
-    @Column(name = "min_order_amount", precision = 15, scale = 0)
-    private BigDecimal minOrderAmount = BigDecimal.ZERO;
-
-    @Column(name = "max_discount_amount", precision = 15, scale = 0)
-    private BigDecimal maxDiscountAmount;
-
-    @Column(name = "usage_limit")
-    private Integer usageLimit = 1;
-
-    @Column(name = "used_count")
-    private Integer usedCount = 0;
-
-    @Column(name = "start_date", nullable = false)
-    private LocalDateTime startDate;
-
-    @Column(name = "end_date", nullable = false)
-    private LocalDateTime endDate;
-
-    @Column(name = "is_active")
-    private Boolean isActive = true;
-
-    @CreationTimestamp
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
+    @Column(name = "discount_type")
+    @Enumerated(EnumType.STRING)
+    private DiscountType discountType;
+
+    @Column(name = "discount_value")
+    private BigDecimal discountValue;
+
+    @Column(name = "end_date")
+    private LocalDateTime endDate;
+
+    @Column(name = "is_active")
+    private Boolean isActive;
+
+    @Column(name = "max_discount_amount")
+    private BigDecimal maxDiscountAmount;
+
+    @Column(name = "min_order_amount")
+    private BigDecimal minOrderAmount;
+
+    private String name;
+
+    @Column(name = "start_date")
+    private LocalDateTime startDate;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Order> orders = new ArrayList<>();
+    @Column(name = "usage_limit")
+    private Integer usageLimit;
 
-    @OneToMany(mappedBy = "voucher", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<ServiceOrder> serviceOrders = new ArrayList<>();
+    @Column(name = "used_count")
+    private Integer usedCount;
 
-    public enum DiscountType {
-        percentage, fixed_amount
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (isActive == null) {
+            isActive = true;
+        }
+        if (usedCount == null) {
+            usedCount = 0;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
     }
 }

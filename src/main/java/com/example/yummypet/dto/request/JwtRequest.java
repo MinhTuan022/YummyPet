@@ -6,12 +6,11 @@ import lombok.Data;
 
 @Data
 public class JwtRequest {
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    private String email;
+    @NotBlank(message = "Username or email is required")
+    private String usernameOrEmail;
 
     @NotBlank(message = "Password is required")
     private String password;
 
-    private String userType = "customer"; // customer or employee
+//    private String userType = "customer"; // customer or employee
 }

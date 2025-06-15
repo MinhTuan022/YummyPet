@@ -13,7 +13,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products",
+        indexes = {
+                @Index(name = "idx_product_barcode", columnList = "barcode"),
+                @Index(name = "idx_product_sku", columnList = "sku")
+        })
 @Data
 @EqualsAndHashCode(exclude = {"category", "orderItems", "cartItems"})
 @ToString(exclude = {"category", "orderItems", "cartItems"})
@@ -24,6 +28,16 @@ public class Product {
 
     @Column(name = "name", nullable = false, length = 200)
     private String name;
+
+    @Column(name = "barcode", unique = true, length = 50)
+    private String barcode; // EAN-13, UPC-A, Code 128, etc.
+
+    @Column(name = "sku", unique = true, length = 100)
+    private String sku; // Stock Keeping Unit - mã nội bộ
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "barcode_type")
+    private BarcodeType barcodeType;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -66,6 +80,9 @@ public class Product {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "is_pet")
+    private Boolean isPet = true;
+
     @Column(name = "is_active")
     private Boolean isActive = true;
 
@@ -83,7 +100,24 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CartItem> cartItems = new ArrayList<>();
 
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    private List<ProductImage> images = new ArrayList<>();
+
     public enum Gender {
         male, female
+    }
+
+    // ENUM CHO LOẠI BARCODE
+    public enum BarcodeType {
+        EAN13,      // European Article Number (13 chữ số)
+        EAN8,       // European Article Number (8 chữ số)
+        UPC_A,      // Universal Product Code (12 chữ số)
+        UPC_E,      // Universal Product Code (8 chữ số)
+        CODE128,    // Code 128 (độ dài thay đổi)
+        CODE39,     // Code 39 (độ dài thay đổi)
+        QR_CODE,    // QR Code (2D)
+        DATA_MATRIX, // Data Matrix (2D)
+        CUSTOM      // Mã tùy chỉnh
     }
 }

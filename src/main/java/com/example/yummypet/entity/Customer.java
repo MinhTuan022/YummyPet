@@ -28,18 +28,24 @@ public class Customer {
     @Column(name = "full_name", nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "username", unique = true, length = 50)
+    private String username;
+
+    @Column(name = "password", length = 255)
+    private String password;
+
     @Column(name = "phone", nullable = false, length = 15)
     private String phone;
 
     @Column(name = "email", length = 100)
     private String email;
 
-//    @Enumerated(EnumType.STRING)
-//    @Column(nullable = true)
-//    private Gender gender;
-
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "gender")
+    private Gender gender;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
@@ -73,9 +79,4 @@ public class Customer {
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<LoyaltyPointHistory> loyaltyPointHistory = new ArrayList<>();
 
-
-
-//    public enum Gender {
-//        male, female
-//    }
 }
