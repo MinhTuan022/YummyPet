@@ -20,6 +20,10 @@ import EmployeePage from "../pages/admin/employee/EmployeePage";
 import ReportPage from "../pages/admin/report/ReportPage";
 import POSOrder from "../pages/admin/inStore/POSOrder";
 import POSService from "../pages/admin/inStore/POSService";
+import CategoryPage from "../pages/admin/category/CategoryPage";
+import AdminAuthPage from "../pages/admin/auth/AdminAuthPage";
+import ProductPage from "../pages/admin/products/ProductPage";
+
 
 
 export const router = createBrowserRouter([
@@ -45,6 +49,10 @@ export const router = createBrowserRouter([
       </CustomRouterProvider>
     ),
     children: [
+      {
+        path: "auth",
+        element: <AdminAuthPage />,
+      },
       {
         path: "dashboard",
         // element: (
@@ -91,6 +99,14 @@ export const router = createBrowserRouter([
       {
         path: "in-store/services",
         element: <POSService />,
+      },
+      {
+        path: "pets/categories",
+        element: <CategoryPage />,
+      },
+      {
+        path: "products",
+        element: <ProductPage />,
       },
     ],
   },

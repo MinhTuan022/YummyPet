@@ -21,6 +21,7 @@ import {
 import "./AdminSidebar.scss";
 import images from "../../res/images";
 import { _router } from "../../context/routerSingleton";
+import { getUserRoleFromToken } from "../../utils";
 
 const AdminSidebar = () => {
   const [activeMenu, setActiveMenu] = useState("dashboard");
@@ -35,6 +36,10 @@ const AdminSidebar = () => {
     );
   };
 
+  const role = getUserRoleFromToken(); // Lấy role từ token
+
+  // Các key menu dành riêng cho Admin
+  const adminOnlyKeys = ["staff", "reports", "settings"];
   const menuItems = [
     {
       key: "dashboard",
@@ -42,7 +47,7 @@ const AdminSidebar = () => {
       label: "Dashboard",
       path: "/admin/dashboard",
     },
-     {
+    {
       key: "health",
       icon: Store,
       label: "Cửa hàng",
@@ -104,12 +109,12 @@ const AdminSidebar = () => {
           label: "Tất cả sản phẩm",
           path: "/admin/products",
         },
-        {
-          key: "add-product",
-          label: "Thêm sản phẩm",
-          path: "/admin/products/add",
-        },
-        { key: "inventory", label: "Kho hàng", path: "/admin/inventory" },
+        // {
+        //   key: "add-product",
+        //   label: "Thêm sản phẩm",
+        //   path: "/admin/products/add",
+        // },
+        { key: "inventory", label: "Kho hàng", path: "/admin/categories" },
       ],
     },
     {
@@ -118,7 +123,7 @@ const AdminSidebar = () => {
       label: "Dịch vụ",
       path: "/admin/services",
     },
-   
+
     // {
     //   key: "medicines",
     //   icon: Pill,
@@ -151,7 +156,15 @@ const AdminSidebar = () => {
     },
   ];
 
-  const handleMenuClick = (menuKey: string, path: string, hasSubmenu = false) => {
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (role === "ADMIN") return true;
+    return !adminOnlyKeys.includes(item.key); // Nếu không phải ADMIN thì ẩn các mục này
+  });
+  const handleMenuClick = (
+    menuKey: string,
+    path: string,
+    hasSubmenu = false
+  ) => {
     if (hasSubmenu) {
       // console.log("???", item)
       toggleMenu(menuKey);
@@ -189,7 +202,7 @@ const AdminSidebar = () => {
       {/* Navigation Menu */}
       <nav className="sidebar-nav">
         <ul className="nav-list">
-          {menuItems.map((item) => {
+          {filteredMenuItems.map((item) => {
             const Icon = item.icon;
             const isExpanded = expandedMenus.includes(item.key);
             const isActive = activeMenu === item.key;
@@ -198,7 +211,9 @@ const AdminSidebar = () => {
               <li key={item.key} className="nav-item">
                 <div
                   className={`nav-link ${isActive ? "active" : ""}`}
-                  onClick={() => handleMenuClick(item.key, item.path || "",  item.hasSubmenu)}
+                  onClick={() =>
+                    handleMenuClick(item.key, item.path || "", item.hasSubmenu)
+                  }
                 >
                   <div className="nav-link-content">
                     <Icon className="nav-icon" />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Card, 
   Table, 
@@ -13,7 +13,10 @@ import {
   Modal,
   Form,
   InputNumber,
-  message
+  message,
+  Descriptions,
+  Divider,
+  Dropdown
 } from 'antd';
 import { 
   SearchOutlined, 
@@ -25,8 +28,11 @@ import {
   TruckOutlined,
   CheckCircleOutlined,
   ClockCircleOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  MoreOutlined,
+  SwapOutlined
 } from '@ant-design/icons';
+import { _request } from '../../../network/Api';
 
 const { Search } = Input;
 const { Option } = Select;
@@ -35,23 +41,24 @@ const { confirm } = Modal;
 interface Order {
   id: number;
   createdAt: string;
-  deliveryMethod: string;
+  updatedAt: string;
   discountAmount: number;
   finalAmount: number;
   notes: string;
   orderCode: string;
-  orderType: string;
-  paymentMethod: string;
+  orderType: 'ONLINE' | 'OFFLINE';
+  paymentMethod: 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'E_WALLET';
+  paymentStatus: 'PENDING' | 'PAID' | 'FAILED';
   shippingAddress: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   totalAmount: number;
-  updatedAt: string;
   customer: {
     id: number;
     fullName: string;
     phone: string;
     email: string;
   };
+  employee: any;
   orderItems: Array<{
     id: number;
     quantity: number;
@@ -72,275 +79,91 @@ const OrderPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
   const [form] = Form.useForm();
+  const [orderData, setOrderData] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const [orderData, setOrderData] = useState<Order[]>([
-    {
-      id: 1,
-      createdAt: '2024-12-15T10:30:00Z',
-      deliveryMethod: 'Giao hàng tiêu chuẩn',
-      discountAmount: 50000,
-      finalAmount: 950000,
-      notes: 'Khách yêu cầu giao trong giờ hành chính',
-      orderCode: 'DH-2024-001',
-      orderType: 'Đặt hàng online',
-      paymentMethod: 'Chuyển khoản ngân hàng',
-      shippingAddress: '123 Đường Nguyễn Trãi, Quận 1, TP.HCM',
-      status: 'shipped',
-      totalAmount: 1000000,
-      updatedAt: '2024-12-15T14:20:00Z',
-      customer: {
-        id: 1,
-        fullName: 'Nguyễn Văn An',
-        phone: '0901234567',
-        email: 'nguyenvanan@email.com'
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const fetchOrders = () => {
+    setLoading(true);
+    _request({
+      path: "/orders",
+      method: "GET",
+      onSuccess(data) {
+        setOrderData(data.data.content || data.data || []);
+        setLoading(false);
       },
-      orderItems: [
-        {
-          id: 1,
-          quantity: 2,
-          totalPrice: 600000,
-          unitPrice: 300000,
-          product: {
-            name: 'Thức ăn cho chó Golden Retriever',
-            breed: 'Golden Retriever',
-            category: { name: 'Thức ăn' }
-          }
-        },
-        {
-          id: 2,
-          quantity: 1,
-          totalPrice: 400000,
-          unitPrice: 400000,
-          product: {
-            name: 'Vitamin tổng hợp cho thú cưng',
-            breed: 'Tất cả giống',
-            category: { name: 'Thuốc & Vitamin' }
-          }
-        }
-      ]
-    },
-    {
-      id: 2,
-      createdAt: '2024-12-14T09:15:00Z',
-      deliveryMethod: 'Giao hàng hỏa tốc',
-      discountAmount: 0,
-      finalAmount: 750000,
-      notes: 'Thuốc khẩn cấp cho thú cưng bị bệnh',
-      orderCode: 'DH-2024-002',
-      orderType: 'Mua tại cửa hàng',
-      paymentMethod: 'Tiền mặt',
-      shippingAddress: '456 Đường Lê Văn Sỹ, Quận 3, TP.HCM',
-      status: 'delivered',
-      totalAmount: 750000,
-      updatedAt: '2024-12-16T11:45:00Z',
-      customer: {
-        id: 2,
-        fullName: 'Trần Thị Bình',
-        phone: '0912345678',
-        email: 'tranthibinh@email.com'
+      onError(error) {
+        message.error('Không thể tải danh sách đơn hàng');
+        setLoading(false);
       },
-      orderItems: [
-        {
-          id: 3,
-          quantity: 1,
-          totalPrice: 350000,
-          unitPrice: 350000,
-          product: {
-            name: 'Thuốc trị giun sán cho mèo',
-            breed: 'Mèo Ba Tư',
-            category: { name: 'Thuốc & Vitamin' }
-          }
-        },
-        {
-          id: 4,
-          quantity: 1,
-          totalPrice: 400000,
-          unitPrice: 400000,
-          product: {
-            name: 'Sữa tắm chuyên dụng cho mèo',
-            breed: 'Mèo Ba Tư',
-            category: { name: 'Vệ sinh' }
-          }
-        }
-      ]
-    },
-    {
-      id: 3,
-      createdAt: '2024-12-16T16:22:00Z',
-      deliveryMethod: 'Giao trong ngày',
-      discountAmount: 100000,
-      finalAmount: 1400000,
-      notes: 'Đơn hàng khẩn cấp cho ca phẫu thuật thú cưng',
-      orderCode: 'DH-2024-003',
-      orderType: 'Đặt hàng online',
-      paymentMethod: 'Thẻ tín dụng',
-      shippingAddress: '789 Đường Cách Mạng Tháng 8, Quận 10, TP.HCM',
-      status: 'processing',
-      totalAmount: 1500000,
-      updatedAt: '2024-12-16T16:22:00Z',
-      customer: {
-        id: 3,
-        fullName: 'Lê Minh Cường',
-        phone: '0923456789',
-        email: 'leminhcuong@email.com'
-      },
-      orderItems: [
-        {
-          id: 5,
-          quantity: 1,
-          totalPrice: 800000,
-          unitPrice: 800000,
-          product: {
-            name: 'Thuốc mê cho phẫu thuật thú cưng',
-            breed: 'Chó Husky',
-            category: { name: 'Thuốc & Vitamin' }
-          }
-        },
-        {
-          id: 6,
-          quantity: 1,
-          totalPrice: 700000,
-          unitPrice: 700000,
-          product: {
-            name: 'Dụng cụ phẫu thuật thú y',
-            breed: 'Tất cả giống',
-            category: { name: 'Dụng cụ y tế' }
-          }
-        }
-      ]
-    },
-    {
-      id: 4,
-      createdAt: '2024-12-17T08:45:00Z',
-      deliveryMethod: 'Giao hàng tiêu chuẩn',
-      discountAmount: 25000,
-      finalAmount: 475000,
-      notes: 'Đơn hàng định kỳ hàng tháng',
-      orderCode: 'DH-2024-004',
-      orderType: 'Mua tại cửa hàng',
-      paymentMethod: 'Thẻ ATM',
-      shippingAddress: '321 Đường Võ Văn Tần, Quận 3, TP.HCM',
-      status: 'pending',
-      totalAmount: 500000,
-      updatedAt: '2024-12-17T08:45:00Z',
-      customer: {
-        id: 4,
-        fullName: 'Phạm Thị Dung',
-        phone: '0934567890',
-        email: 'phamthidung@email.com'
-      },
-      orderItems: [
-        {
-          id: 7,
-          quantity: 3,
-          totalPrice: 450000,
-          unitPrice: 150000,
-          product: {
-            name: 'Thức ăn hạt cho chó Poodle',
-            breed: 'Poodle',
-            category: { name: 'Thức ăn' }
-          }
-        },
-        {
-          id: 8,
-          quantity: 1,
-          totalPrice: 50000,
-          unitPrice: 50000,
-          product: {
-            name: 'Xương gặm sạch răng',
-            breed: 'Tất cả giống',
-            category: { name: 'Đồ chơi' }
-          }
-        }
-      ]
-    },
-    {
-      id: 5,
-      createdAt: '2024-12-18T13:30:00Z',
-      deliveryMethod: 'Giao hàng hỏa tốc',
-      discountAmount: 200000,
-      finalAmount: 1800000,
-      notes: 'Đơn hàng số lượng lớn được giảm giá đặc biệt',
-      orderCode: 'DH-2024-005',
-      orderType: 'Đặt hàng online',
-      paymentMethod: 'Chuyển khoản ngân hàng',
-      shippingAddress: '654 Đường Pasteur, Quận 1, TP.HCM',
-      status: 'cancelled',
-      totalAmount: 2000000,
-      updatedAt: '2024-12-18T15:10:00Z',
-      customer: {
-        id: 5,
-        fullName: 'Võ Hoàng Ế',
-        phone: '0945678901',
-        email: 'vohoange@email.com'
-      },
-      orderItems: [
-        {
-          id: 9,
-          quantity: 5,
-          totalPrice: 1500000,
-          unitPrice: 300000,
-          product: {
-            name: 'Thức ăn cao cấp cho mèo Anh lông ngắn',
-            breed: 'Mèo Anh lông ngắn',
-            category: { name: 'Thức ăn' }
-          }
-        },
-        {
-          id: 10,
-          quantity: 2,
-          totalPrice: 500000,
-          unitPrice: 250000,
-          product: {
-            name: 'Cát vệ sinh cao cấp',
-            breed: 'Tất cả giống',
-            category: { name: 'Vệ sinh' }
-          }
-        }
-      ]
-    }
-  ]);
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'orange';
-      case 'processing': return 'blue';
-      case 'shipped': return 'cyan';
-      case 'delivered': return 'green';
-      case 'cancelled': return 'red';
+      case 'PENDING': return 'orange';
+      case 'PROCESSING': return 'blue';
+      case 'SHIPPED': return 'cyan';
+      case 'DELIVERED': return 'green';
+      case 'CANCELLED': return 'red';
       default: return 'default';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending': return <ClockCircleOutlined />;
-      case 'processing': return <ExclamationCircleOutlined />;
-      case 'shipped': return <TruckOutlined />;
-      case 'delivered': return <CheckCircleOutlined />;
-      case 'cancelled': return <DeleteOutlined />;
+      case 'PENDING': return <ClockCircleOutlined />;
+      case 'PROCESSING': return <ExclamationCircleOutlined />;
+      case 'SHIPPED': return <TruckOutlined />;
+      case 'DELIVERED': return <CheckCircleOutlined />;
+      case 'CANCELLED': return <DeleteOutlined />;
       default: return null;
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Chờ xử lý';
-      case 'processing': return 'Đang xử lý';
-      case 'shipped': return 'Đã giao';
-      case 'delivered': return 'Hoàn thành';
-      case 'cancelled': return 'Đã hủy';
+      case 'PENDING': return 'Chờ xử lý';
+      case 'PROCESSING': return 'Đang xử lý';
+      case 'SHIPPED': return 'Đã giao';
+      case 'DELIVERED': return 'Đã giao';
+      case 'COMPLETED': return 'Hoàn thành';
+
+      case 'CANCELLED': return 'Đã hủy';
       default: return status;
     }
   };
 
+  const getOrderTypeText = (type: string) => {
+    switch (type) {
+      case 'ONLINE': return 'Đặt hàng online';
+      case 'IN_STORE': return 'Mua tại cửa hàng';
+      default: return type;
+    }
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'CASH': return 'Tiền mặt';
+      case 'CARD': return 'Thẻ tín dụng';
+      case 'BANK_TRANSFER': return 'Chuyển khoản ngân hàng';
+      case 'E_WALLET': return 'Ví điện tử';
+      default: return method;
+    }
+  };
+
   const totalOrders = orderData.length;
-  const pendingOrders = orderData.filter(order => order.status === 'pending').length;
-  const processingOrders = orderData.filter(order => order.status === 'processing').length;
-  const shippedOrders = orderData.filter(order => order.status === 'shipped').length;
-  const deliveredOrders = orderData.filter(order => order.status === 'delivered').length;
+  const pendingOrders = orderData.filter(order => order.status === 'PENDING').length;
+  const processingOrders = orderData.filter(order => order.status === 'PROCESSING').length;
+  const shippedOrders = orderData.filter(order => order.status === 'DELIVERED').length;
+  const deliveredOrders = orderData.filter(order => order.status === 'COMPLETED').length;
 
   const handleEdit = (record: Order) => {
     setEditingOrder(record);
@@ -353,6 +176,11 @@ const OrderPage: React.FC = () => {
     setIsModalVisible(true);
   };
 
+  const handleViewDetail = (record: Order) => {
+    setViewingOrder(record);
+    setIsDetailModalVisible(true);
+  };
+
   const handleDelete = (record: Order) => {
     confirm({
       title: 'Bạn có chắc chắn muốn xóa đơn hàng này?',
@@ -361,8 +189,40 @@ const OrderPage: React.FC = () => {
       okType: 'danger',
       cancelText: 'Không',
       onOk() {
-        setOrderData(orderData.filter(order => order.id !== record.id));
-        message.success('Đã xóa đơn hàng thành công');
+        _request({
+          path: `/orders/${record.id}`,
+          method: "DELETE",
+          onSuccess() {
+            message.success('Đã xóa đơn hàng thành công');
+            fetchOrders(); // Refresh data
+          },
+          onError(error) {
+            message.error('Không thể xóa đơn hàng');
+          },
+        });
+      },
+    });
+  };
+
+  const handleStatusChange = (record: Order, newStatus: string) => {
+    confirm({
+      title: 'Xác nhận thay đổi trạng thái',
+      content: `Bạn có muốn chuyển đơn hàng ${record.orderCode} sang trạng thái "${getStatusText(newStatus)}"?`,
+      okText: 'Có',
+      cancelText: 'Không',
+      onOk() {
+        _request({
+          path: `/orders/${record.id}/status`,
+          method: "PUT",
+          body: { newStatus: newStatus, notes: "" },
+          onSuccess() {
+            message.success('Đã cập nhật trạng thái đơn hàng thành công');
+            fetchOrders(); // Refresh data
+          },
+          onError(error) {
+            message.error('Không thể cập nhật trạng thái đơn hàng');
+          },
+        });
       },
     });
   };
@@ -370,29 +230,42 @@ const OrderPage: React.FC = () => {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      const updatedOrder = {
+      const orderData = {
         ...values,
-        id: editingOrder?.id || Date.now(),
-        createdAt: editingOrder?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        orderType: values.orderType || 'ONLINE',
+        paymentMethod: values.paymentMethod || 'CASH',
         customer: {
-          id: editingOrder?.customer.id || Date.now(),
           fullName: values.customerName,
           phone: values.customerPhone,
           email: values.customerEmail
-        },
-        orderItems: editingOrder?.orderItems || []
+        }
       };
 
-      if (editingOrder) {
-        setOrderData(orderData.map(order => 
-          order.id === editingOrder.id ? updatedOrder : order
-        ));
-        message.success('Đã cập nhật đơn hàng thành công');
-      } else {
-        setOrderData([...orderData, updatedOrder]);
-        message.success('Đã tạo đơn hàng thành công');
-      }
+      const apiCall = editingOrder 
+        ? _request({
+            path: `/orders/${editingOrder.id}`,
+            method: "PUT",
+            body: orderData,
+            onSuccess() {
+              message.success('Đã cập nhật đơn hàng thành công');
+              fetchOrders();
+            },
+            onError(error) {
+              message.error('Không thể cập nhật đơn hàng');
+            },
+          })
+        : _request({
+            path: "/orders",
+            method: "POST",
+            body: orderData,
+            onSuccess() {
+              message.success('Đã tạo đơn hàng thành công');
+              fetchOrders();
+            },
+            onError(error) {
+              message.error('Không thể tạo đơn hàng');
+            },
+          });
 
       setIsModalVisible(false);
       setEditingOrder(null);
@@ -406,11 +279,11 @@ const OrderPage: React.FC = () => {
     setEditingOrder(null);
     form.resetFields();
     form.setFieldsValue({
-      orderCode: `DH-${new Date().getFullYear()}-${String(orderData.length + 1).padStart(3, '0')}`,
-      status: 'pending',
-      orderType: 'Đặt hàng online',
-      paymentMethod: 'Chuyển khoản ngân hàng',
-      deliveryMethod: 'Giao hàng tiêu chuẩn',
+      orderCode: `DH${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}${String(new Date().getDate()).padStart(2, '0')}${String(orderData.length + 1).padStart(3, '0')}`,
+      status: 'PENDING',
+      orderType: 'ONLINE',
+      paymentMethod: 'CASH',
+      paymentStatus: 'PENDING',
       discountAmount: 0
     });
     setIsModalVisible(true);
@@ -427,33 +300,54 @@ const OrderPage: React.FC = () => {
     return new Date(dateString).toLocaleDateString('vi-VN', {
       day: '2-digit',
       month: '2-digit',
-      year: 'numeric'
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
+  const getStatusActions = (record: Order) => {
+    if (record.status !== 'PENDING') return [];
+
+    const actions = [
+      {
+        key: 'processing',
+        label: 'Chuyển sang xử lý',
+        onClick: () => handleStatusChange(record, 'PROCESSING')
+      },
+      {
+        key: 'cancelled',
+        label: 'Hủy đơn hàng',
+        onClick: () => handleStatusChange(record, 'CANCELLED')
+      }
+    ];
+
+    return actions;
+  };
+
   const columns = [
-    {
-      title: '',
-      dataIndex: 'checkbox',
-      width: 50,
-      render: (_: any, record: Order) => (
-        <Checkbox 
-          checked={selectedRowKeys.includes(record.id)}
-          onChange={(e) => {
-            if (e.target.checked) {
-              setSelectedRowKeys([...selectedRowKeys, record.id]);
-            } else {
-              setSelectedRowKeys(selectedRowKeys.filter(key => key !== record.id));
-            }
-          }}
-        />
-      ),
-    },
+    // {
+    //   title: '',
+    //   dataIndex: 'checkbox',
+    //   width: 50,
+    //   render: (_: any, record: Order) => (
+    //     <Checkbox 
+    //       checked={selectedRowKeys.includes(record.id)}
+    //       onChange={(e) => {
+    //         if (e.target.checked) {
+    //           setSelectedRowKeys([...selectedRowKeys, record.id]);
+    //         } else {
+    //           setSelectedRowKeys(selectedRowKeys.filter(key => key !== record.id));
+    //         }
+    //       }}
+    //     />
+    //   ),
+    // },
     {
       title: 'Mã đơn hàng',
       dataIndex: 'orderCode',
       key: 'orderCode',
-      width: 120,
+      width: 140,
       render: (text: string) => <span style={{ fontWeight: 'bold', color: '#1890ff' }}>{text}</span>
     },
     {
@@ -473,8 +367,8 @@ const OrderPage: React.FC = () => {
       key: 'orderType',
       width: 120,
       render: (text: string) => (
-        <Tag color={text === 'Mua tại cửa hàng' ? 'orange' : 'blue'}>
-          {text}
+        <Tag color={text === 'OFFLINE' ? 'orange' : 'blue'}>
+          {getOrderTypeText(text)}
         </Tag>
       )
     },
@@ -483,6 +377,7 @@ const OrderPage: React.FC = () => {
       dataIndex: 'paymentMethod',
       key: 'paymentMethod',
       width: 150,
+      render: (text: string) => getPaymentMethodText(text)
     },
     {
       title: 'Tổng tiền',
@@ -520,41 +415,65 @@ const OrderPage: React.FC = () => {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
       key: 'createdAt',
-      width: 120,
+      width: 140,
       render: (date: string) => formatDate(date)
     },
     {
       title: 'Thao tác',
       key: 'action',
       width: 150,
-      render: (_: any, record: Order) => (
-        <Space size="small">
-          <Tooltip title="Chỉnh sửa">
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              size="small"
-              onClick={() => handleEdit(record)}
-            />
-          </Tooltip>
-          <Tooltip title="Xem chi tiết">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined />} 
-              size="small"
-            />
-          </Tooltip>
-          <Tooltip title="Xóa">
-            <Button 
-              type="text" 
-              icon={<DeleteOutlined />} 
-              size="small"
-              danger
-              onClick={() => handleDelete(record)}
-            />
-          </Tooltip>
-        </Space>
-      ),
+      render: (_: any, record: Order) => {
+        const statusActions = getStatusActions(record);
+        
+        return (
+          <Space size="small">
+            <Tooltip title="Xem chi tiết">
+              <Button 
+                type="text" 
+                icon={<EyeOutlined />} 
+                size="small"
+                onClick={() => handleViewDetail(record)}
+              />
+            </Tooltip>
+            {/* <Tooltip title="Chỉnh sửa">
+              <Button 
+                type="text" 
+                icon={<EditOutlined />} 
+                size="small"
+                onClick={() => handleEdit(record)}
+              />
+            </Tooltip> */}
+            {/* <Tooltip title="Xóa">
+              <Button 
+                type="text" 
+                icon={<DeleteOutlined />} 
+                size="small"
+                danger
+                onClick={() => handleDelete(record)}
+              />
+            </Tooltip> */}
+            {statusActions.length > 0 && (
+              <Dropdown
+                menu={{
+                  items: statusActions.map(action => ({
+                    key: action.key,
+                    label: action.label,
+                    onClick: action.onClick,
+                    icon: <SwapOutlined />
+                  }))
+                }}
+                trigger={['click']}
+              >
+                <Button 
+                  type="text" 
+                  icon={<MoreOutlined />} 
+                  size="small"
+                />
+              </Dropdown>
+            )}
+          </Space>
+        );
+      },
     },
   ];
 
@@ -638,26 +557,27 @@ const OrderPage: React.FC = () => {
               style={{ width: 150 }}
             >
               <Option value="all">Tất cả trạng thái</Option>
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="processing">Đang xử lý</Option>
-              <Option value="shipped">Đã giao</Option>
-              <Option value="delivered">Hoàn thành</Option>
-              <Option value="cancelled">Đã hủy</Option>
+              <Option value="PENDING">Chờ xử lý</Option>
+              <Option value="PROCESSING">Đang xử lý</Option>
+              <Option value="SHIPPED">Đã giao</Option>
+              <Option value="DELIVERED">Hoàn thành</Option>
+              <Option value="CANCELLED">Đã hủy</Option>
             </Select>
           </div>
-          <Button 
+          {/* <Button 
             type="primary" 
             icon={<PlusOutlined />}
             onClick={handleNewOrder}
           >
             Tạo đơn hàng mới
-          </Button>
+          </Button> */}
         </div>
 
         <Table
           columns={columns}
           dataSource={filteredData}
           rowKey="id"
+          loading={loading}
           pagination={{
             pageSize: 10,
             showSizeChanger: true,
@@ -669,6 +589,152 @@ const OrderPage: React.FC = () => {
         />
       </Card>
 
+      {/* Detail Modal */}
+      <Modal
+        title={`Chi tiết đơn hàng - ${viewingOrder?.orderCode}`}
+        open={isDetailModalVisible}
+        onCancel={() => {
+          setIsDetailModalVisible(false);
+          setViewingOrder(null);
+        }}
+        width={800}
+        footer={[
+          <Button key="close" onClick={() => setIsDetailModalVisible(false)}>
+            Đóng
+          </Button>
+        ]}
+      >
+        {viewingOrder && (
+          <div>
+            <Descriptions title="Thông tin đơn hàng" bordered column={2}>
+              <Descriptions.Item label="Mã đơn hàng" span={1}>
+                <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+                  {viewingOrder.orderCode}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái" span={1}>
+                <Tag 
+                  color={getStatusColor(viewingOrder.status)}
+                  icon={getStatusIcon(viewingOrder.status)}
+                >
+                  {getStatusText(viewingOrder.status)}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Loại đơn hàng" span={1}>
+                <Tag color={viewingOrder.orderType === 'OFFLINE' ? 'orange' : 'blue'}>
+                  {getOrderTypeText(viewingOrder.orderType)}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Phương thức thanh toán" span={1}>
+                {getPaymentMethodText(viewingOrder.paymentMethod)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày tạo" span={1}>
+                {formatDate(viewingOrder.createdAt)}
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày cập nhật" span={1}>
+                {formatDate(viewingOrder.updatedAt)}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider />
+
+            <Descriptions title="Thông tin khách hàng" bordered column={2}>
+              <Descriptions.Item label="Họ tên" span={1}>
+                <span style={{ fontWeight: 'bold' }}>
+                  {viewingOrder.customer.fullName}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại" span={1}>
+                {viewingOrder.customer.phone}
+              </Descriptions.Item>
+              <Descriptions.Item label="Email" span={2}>
+                {viewingOrder.customer.email || 'Chưa có'}
+              </Descriptions.Item>
+              <Descriptions.Item label="Địa chỉ giao hàng" span={2}>
+                {viewingOrder.shippingAddress}
+              </Descriptions.Item>
+            </Descriptions>
+
+            <Divider />
+
+            <Descriptions title="Thông tin thanh toán" bordered column={2}>
+              <Descriptions.Item label="Tổng tiền" span={1}>
+                <span style={{ fontWeight: 'bold' }}>
+                  {formatCurrency(viewingOrder.totalAmount)}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Giảm giá" span={1}>
+                <span style={{ color: '#f5222d' }}>
+                  -{formatCurrency(viewingOrder.discountAmount)}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Thành tiền" span={2}>
+                <span style={{ fontWeight: 'bold', color: '#52c41a', fontSize: '16px' }}>
+                  {formatCurrency(viewingOrder.finalAmount)}
+                </span>
+              </Descriptions.Item>
+            </Descriptions>
+
+            {viewingOrder.notes && (
+              <>
+                <Divider />
+                <Descriptions title="Ghi chú" bordered>
+                  <Descriptions.Item label="Ghi chú" span={3}>
+                    {viewingOrder.notes}
+                  </Descriptions.Item>
+                </Descriptions>
+              </>
+            )}
+
+            {viewingOrder.orderItems && viewingOrder.orderItems.length > 0 && (
+              <>
+                <Divider />
+                <h4>Sản phẩm trong đơn hàng</h4>
+                <Table
+                  dataSource={viewingOrder.orderItems}
+                  rowKey="id"
+                  pagination={false}
+                  size="small"
+                  columns={[
+                    {
+                      title: 'Sản phẩm',
+                      key: 'product',
+                      render: (item: any) => (
+                        <div>
+                          <div style={{ fontWeight: 'bold' }}>{item.product.name}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {item.product.category.name} - {item.product.breed}
+                          </div>
+                        </div>
+                      )
+                    },
+                    {
+                      title: 'Đơn giá',
+                      dataIndex: 'unitPrice',
+                      render: (price: number) => formatCurrency(price)
+                    },
+                    {
+                      title: 'Số lượng',
+                      dataIndex: 'quantity',
+                    },
+                    {
+                      title: 'Thành tiền',
+                      dataIndex: 'totalPrice',
+                      render: (price: number) => (
+                        <span style={{ fontWeight: 'bold' }}>
+                          {formatCurrency(price)}
+                        </span>
+                      )
+                    }
+                  ]}
+                />
+              </>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit/Create Modal */}
       <Modal
         title={editingOrder ? 'Chỉnh sửa đơn hàng' : 'Tạo đơn hàng mới'}
         open={isModalVisible}
@@ -697,11 +763,11 @@ const OrderPage: React.FC = () => {
               rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
             >
               <Select>
-                <Option value="pending">Chờ xử lý</Option>
-                <Option value="processing">Đang xử lý</Option>
-                <Option value="shipped">Đã giao</Option>
-                <Option value="delivered">Hoàn thành</Option>
-                <Option value="cancelled">Đã hủy</Option>
+                <Option value="PENDING">Chờ xử lý</Option>
+                <Option value="PROCESSING">Đang xử lý</Option>
+                <Option value="SHIPPED">Đã giao</Option>
+                <Option value="DELIVERED">Hoàn thành</Option>
+                <Option value="CANCELLED">Đã hủy</Option>
               </Select>
             </Form.Item>
           </div>

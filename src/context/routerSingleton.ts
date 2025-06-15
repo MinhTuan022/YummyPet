@@ -41,6 +41,10 @@ class RouterSingleton {
     this.navigateTo(path);
   }
 
+  public openDashboard() {
+    this.navigateTo("/admin/dashboard");
+  }
+
   // Hàm điều hướng chung
   private navigateTo(path: string, options?: { state?: any }) {
     if (this.navigate) {

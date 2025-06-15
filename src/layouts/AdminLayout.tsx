@@ -12,10 +12,10 @@ const AdminLayout = () => {
   console.log("render");
   const location = useLocation();
   const [title, setTitle] = useState<string>("");
- const contentRef = useRef<any>()
+  const contentRef = useRef<any>();
   useEffect(() => {
     window.scrollTo(0, 0);
-    contentRef.current.scrollTo(0,0)
+    contentRef.current.scrollTo(0, 0);
 
     const getTitleByPath = (path: string) => {
       switch (path) {
@@ -31,7 +31,7 @@ const AdminLayout = () => {
           return "Tất cả khách hàng";
         case "/admin/services":
           return "Tất cả dịch vụ";
-          case "/admin/orders":
+        case "/admin/orders":
           return "Quản lý đơn hàng";
         default:
           return "Quản trị hệ thống";
@@ -44,18 +44,14 @@ const AdminLayout = () => {
 
   return (
     <div className="admin-layout">
-      {/* Sidebar cố định bên trái */}
-      {/* <Sider width={250} className="admin-sidebar-wrapper"> */}
-      <AdminSidebar />
-      {/* </Sider> */}
+      {location.pathname !== "/admin/auth" && <AdminSidebar />}
 
-      {/* Khu vực nội dung chính */}
       <Layout>
-        <Header className="main-header">
-          {/* Có thể thêm breadcrumb, search bar... */}
-          <h1 className="page-title">{title}</h1>
-        </Header>
-
+        {location.pathname !== "/admin/auth" && (
+          <Header className="main-header">
+            <h1 className="page-title">{title}</h1>
+          </Header>
+        )}
         <Content className="admin-content" ref={contentRef}>
           <Outlet />
         </Content>

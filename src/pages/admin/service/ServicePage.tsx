@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Table, 
   Input, 
@@ -8,22 +8,31 @@ import {
   Avatar, 
   Checkbox,
   Space,
-  Select,
-  MenuProps
+  Modal,
+  Form,
+  InputNumber,
+  Switch,
+  message,
+  Popconfirm
 } from 'antd';
 import { 
   SearchOutlined, 
   FilterOutlined, 
-  MoreOutlined 
+  MoreOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  PoweroffOutlined
 } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, MenuProps } from 'antd/es/table';
+import { _request } from '../../../network/Api';
 
-const { Search } = Input;
-const { Option } = Select;
+const { Search, TextArea } = Input;
 
 interface Service {
   key: string;
-  id: string;
+  id: number;
   name: string;
   description: string;
   durationMinutes: number;
@@ -31,176 +40,78 @@ interface Service {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  category: string;
 }
 
-const ServiceManagement: React.FC = () => {
+interface ServiceFormData {
+  name: string;
+  description: string;
+  price: number;
+  durationMinutes: number;
+  isActive: boolean;
+}
+
+const ServicePage: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [searchText, setSearchText] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend'>('ascend');
+  const [allServicesData, setAllServicesData] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [form] = Form.useForm();
+  const [filterStatus, setFilterStatus] = useState<string>('');
+  const [showCompact, setShowCompact] = useState(false);
 
-  // Dữ liệu mẫu về dịch vụ cửa hàng thú cưng
-  const allServicesData: Service[] = [
-    {
-      key: '1',
-      id: '1',
-      name: 'Tắm và cắt tỉa lông chó',
-      description: 'Dịch vụ tắm rửa và cắt tỉa lông chuyên nghiệp cho chó',
-      durationMinutes: 90,
-      price: 250000,
-      isActive: true,
-      createdAt: '2025-06-01',
-      updatedAt: '2025-06-05',
-      category: 'Chăm sóc sắc đẹp'
-    },
-    {
-      key: '2',
-      id: '2',
-      name: 'Khám sức khỏe tổng quát',
-      description: 'Kiểm tra sức khỏe định kỳ và tư vấn chăm sóc thú cưng',
-      durationMinutes: 45,
-      price: 150000,
-      isActive: true,
-      createdAt: '2025-05-28',
-      updatedAt: '2025-06-03',
-      category: 'Y tế thú y'
-    },
-    {
-      key: '3',
-      id: '3',
-      name: 'Tiêm phòng vaccine',
-      description: 'Tiêm các loại vaccine phòng bệnh cho chó mèo',
-      durationMinutes: 30,
-      price: 200000,
-      isActive: true,
-      createdAt: '2025-05-25',
-      updatedAt: '2025-06-01',
-      category: 'Y tế thú y'
-    },
-    {
-      key: '4',
-      id: '4',
-      name: 'Cắt móng và vệ sinh tai',
-      description: 'Cắt móng chân và vệ sinh tai cho thú cưng',
-      durationMinutes: 20,
-      price: 50000,
-      isActive: true,
-      createdAt: '2025-05-20',
-      updatedAt: '2025-05-30',
-      category: 'Chăm sóc sắc đẹp'
-    },
-    {
-      key: '5',
-      id: '5',
-      name: 'Tắm cho mèo',
-      description: 'Dịch vụ tắm rửa chuyên dụng cho mèo',
-      durationMinutes: 60,
-      price: 180000,
-      isActive: true,
-      createdAt: '2025-05-18',
-      updatedAt: '2025-05-28',
-      category: 'Chăm sóc sắc đẹp'
-    },
-    {
-      key: '6',
-      id: '6',
-      name: 'Khám và điều trị bệnh ngoài da',
-      description: 'Chẩn đoán và điều trị các bệnh về da cho thú cưng',
-      durationMinutes: 60,
-      price: 300000,
-      isActive: true,
-      createdAt: '2025-05-15',
-      updatedAt: '2025-05-25',
-      category: 'Y tế thú y'
-    },
-    {
-      key: '7',
-      id: '7',
-      name: 'Vệ sinh răng miệng',
-      description: 'Làm sạch cao răng và vệ sinh răng miệng cho thú cưng',
-      durationMinutes: 40,
-      price: 120000,
-      isActive: false,
-      createdAt: '2025-05-12',
-      updatedAt: '2025-05-20',
-      category: 'Chăm sóc sắc đẹp'
-    },
-    {
-      key: '8',
-      id: '8',
-      name: 'Gửi thú cưng theo ngày',
-      description: 'Dịch vụ trông giữ thú cưng trong ngày',
-      durationMinutes: 480,
-      price: 100000,
-      isActive: true,
-      createdAt: '2025-05-10',
-      updatedAt: '2025-05-18',
-      category: 'Chăm sóc'
-    },
-    {
-      key: '9',
-      id: '9',
-      name: 'Huấn luyện cơ bản',
-      description: 'Huấn luyện những kỹ năng cơ bản cho chó con',
-      durationMinutes: 120,
-      price: 500000,
-      isActive: true,
-      createdAt: '2025-05-08',
-      updatedAt: '2025-05-15',
-      category: 'Huấn luyện'
-    },
-    {
-      key: '10',
-      id: '10',
-      name: 'Phẫu thuật triệt sản',
-      description: 'Phẫu thuật triệt sản cho chó mèo',
-      durationMinutes: 180,
-      price: 800000,
-      isActive: true,
-      createdAt: '2025-05-05',
-      updatedAt: '2025-05-12',
-      category: 'Y tế thú y'
-    },
-    {
-      key: '11',
-      id: '11',
-      name: 'Spa thư giãn cho thú cưng',
-      description: 'Dịch vụ spa và massage thư giãn cao cấp',
-      durationMinutes: 150,
-      price: 400000,
-      isActive: false,
-      createdAt: '2025-05-03',
-      updatedAt: '2025-05-10',
-      category: 'Chăm sóc sắc đẹp'
-    },
-    {
-      key: '12',
-      id: '12',
-      name: 'Tư vấn dinh dưỡng',
-      description: 'Tư vấn chế độ dinh dưỡng phù hợp cho từng loại thú cưng',
-      durationMinutes: 30,
-      price: 80000,
-      isActive: true,
-      createdAt: '2025-05-01',
-      updatedAt: '2025-05-08',
-      category: 'Tư vấn'
+  // Load services from API
+  const loadServices = async () => {
+    setLoading(true);
+    try {
+      await _request({
+        path: "/services",
+        method: "GET",
+        onSuccess(data) {
+          const servicesWithKeys = data.data.content.map((service: any) => ({
+            ...service,
+            key: service.id.toString()
+          }));
+          setAllServicesData(servicesWithKeys);
+        },
+        onError(error) {
+          message.error('Không thể tải danh sách dịch vụ');
+          console.error(error);
+        },
+      });
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
+  useEffect(() => {
+    loadServices();
+  }, []);
+
+  // Filter and sort data
   const filteredData = useMemo(() => {
     let filtered = allServicesData;
 
+    // Search filter
     if (searchText) {
       filtered = filtered.filter(service =>
         service.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchText.toLowerCase()) ||
-        service.category.toLowerCase().includes(searchText.toLowerCase())
+        service.description.toLowerCase().includes(searchText.toLowerCase())
       );
     }
 
+    // Status filter
+    if (filterStatus) {
+      const isActive = filterStatus === 'active';
+      filtered = filtered.filter(service => service.isActive === isActive);
+    }
+
+    // Sort
     if (sortField) {
       filtered = [...filtered].sort((a, b) => {
         let aValue, bValue;
@@ -225,7 +136,7 @@ const ServiceManagement: React.FC = () => {
     }
 
     return filtered;
-  }, [searchText, sortField, sortOrder]);
+  }, [allServicesData, searchText, sortField, sortOrder, filterStatus]);
 
   const currentPageData = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
@@ -236,51 +147,206 @@ const ServiceManagement: React.FC = () => {
   const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / pageSize);
 
-  const actionItems: MenuProps['items'] = [
+  // Handle service actions
+  const handleEdit = (service: Service) => {
+    setEditingService(service);
+    form.setFieldsValue({
+      name: service.name,
+      description: service.description,
+      price: service.price,
+      durationMinutes: service.durationMinutes,
+      isActive: service.isActive
+    });
+    setIsModalVisible(true);
+  };
+
+  const handleHardDelete = async (serviceId: number) => {
+    try {
+      await _request({
+        path: `/services/${serviceId}/hard`,
+        method: "DELETE",
+        onSuccess() {
+          message.success('Xóa vĩnh viễn dịch vụ thành công');
+          loadServices();
+        },
+        onError(error) {
+          message.error('Không thể xóa dịch vụ');
+          console.error(error);
+        },
+      });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi xóa dịch vụ');
+    }
+  };
+
+  const handleToggleStatus = async (serviceId: number) => {
+    try {
+      await _request({
+        path: `/services/${serviceId}/toggle-status`,
+        method: "PUT",
+        onSuccess(data) {
+          message.success('Cập nhật trạng thái dịch vụ thành công');
+          loadServices();
+        },
+        onError(error) {
+          message.error('Không thể cập nhật trạng thái dịch vụ');
+          console.error(error);
+        },
+      });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi cập nhật trạng thái');
+    }
+  };
+
+  const handleViewDetails = (service: Service) => {
+    Modal.info({
+      title: 'Chi tiết dịch vụ',
+      width: 600,
+      content: (
+        <div style={{ marginTop: 16 }}>
+          <p><strong>Tên dịch vụ:</strong> {service.name}</p>
+          <p><strong>Mô tả:</strong> {service.description}</p>
+          <p><strong>Thời gian:</strong> {formatDuration(service.durationMinutes)}</p>
+          <p><strong>Giá tiền:</strong> {formatPrice(service.price)}</p>
+          <p><strong>Trạng thái:</strong> {service.isActive ? 'Hoạt động' : 'Tạm dừng'}</p>
+          <p><strong>Ngày tạo:</strong> {formatDate(service.createdAt)}</p>
+          <p><strong>Cập nhật lần cuối:</strong> {formatDate(service.updatedAt)}</p>
+        </div>
+      ),
+    });
+  };
+
+  // Get action menu items for each service
+  const getActionItems = (service: Service): MenuProps['items'] => [
     {
-      key: '1',
+      key: 'edit',
       label: 'Chỉnh sửa',
+      icon: <EditOutlined />,
+      onClick: () => handleEdit(service),
     },
     {
-      key: '2',
-      label: 'Xóa',
+      key: 'toggle-status',
+      label: service.isActive ? 'Tạm dừng' : 'Kích hoạt',
+      icon: <PoweroffOutlined />,
+      onClick: () => {
+        Modal.confirm({
+          title: 'Xác nhận thay đổi trạng thái',
+          content: `Bạn có chắc chắn muốn ${service.isActive ? 'tạm dừng' : 'kích hoạt'} dịch vụ "${service.name}"?`,
+          okText: 'Xác nhận',
+          cancelText: 'Hủy',
+          onOk: () => handleToggleStatus(service.id),
+        });
+      },
     },
     {
-      key: '3',
+      key: 'detail',
       label: 'Chi tiết',
+      icon: <EyeOutlined />,
+      onClick: () => handleViewDetails(service),
     },
     {
-      key: '4',
-      label: 'Sao chép',
+      key: 'delete',
+      label: 'Xóa vĩnh viễn',
+      icon: <DeleteOutlined />,
+      danger: true,
+      onClick: () => {
+        Modal.confirm({
+          title: 'Xác nhận xóa vĩnh viễn',
+          content: (
+            <div>
+              <p>Bạn có chắc chắn muốn xóa vĩnh viễn dịch vụ "{service.name}"?</p>
+              <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
+                ⚠️ Hành động này không thể hoàn tác!
+              </p>
+            </div>
+          ),
+          okText: 'Xóa vĩnh viễn',
+          cancelText: 'Hủy',
+          okType: 'danger',
+          onOk: () => handleHardDelete(service.id),
+        });
+      },
     },
   ];
+
+  // Handle form submission
+  const handleSubmit = async (values: ServiceFormData) => {
+    try {
+      const isEdit = !!editingService;
+      const path = isEdit ? `/services/${editingService.id}` : '/services';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      await _request({
+        path,
+        method,
+        body: {
+          name: values.name,
+          description: values.description,
+          price: values.price,
+          durationMinutes: values.durationMinutes,
+          isActive: values.isActive,
+        },
+        onSuccess() {
+          message.success(isEdit ? 'Cập nhật dịch vụ thành công' : 'Thêm dịch vụ thành công');
+          setIsModalVisible(false);
+          form.resetFields();
+          setEditingService(null);
+          loadServices();
+        },
+        onError(error) {
+          message.error(isEdit ? 'Không thể cập nhật dịch vụ' : 'Không thể thêm dịch vụ');
+          console.error(error);
+        },
+      });
+    } catch (error) {
+      message.error('Có lỗi xảy ra');
+    }
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedRowKeys.length === 0) return;
+
+    Modal.confirm({
+      title: 'Xác nhận xóa vĩnh viễn',
+      content: (
+        <div>
+          <p>Bạn có chắc chắn muốn xóa vĩnh viễn {selectedRowKeys.length} dịch vụ đã chọn?</p>
+          <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
+            ⚠️ Hành động này không thể hoàn tác!
+          </p>
+        </div>
+      ),
+      okText: 'Xóa vĩnh viễn',
+      cancelText: 'Hủy',
+      okType: 'danger',
+      onOk: async () => {
+        try {
+          // Delete services one by one using hard delete endpoint
+          for (const key of selectedRowKeys) {
+            await _request({
+              path: `/services/${key}/hard`,
+              method: "DELETE",
+              onSuccess() {},
+              onError(error) {
+                console.error(`Failed to delete service ${key}:`, error);
+              },
+            });
+          }
+          message.success('Xóa vĩnh viễn các dịch vụ thành công');
+          setSelectedRowKeys([]);
+          loadServices();
+        } catch (error) {
+          message.error('Có lỗi xảy ra khi xóa dịch vụ');
+        }
+      },
+    });
+  };
 
   const handleTableChange = (pagination: any, filters: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
       setSortOrder(sorter.order);
-    }
-  };
-
-  const getServiceIcon = (category: string) => {
-    switch (category) {
-      case 'Y tế thú y': return '🏥';
-      case 'Chăm sóc sắc đẹp': return '✂️';
-      case 'Chăm sóc': return '🤗';
-      case 'Huấn luyện': return '🎾';
-      case 'Tư vấn': return '💡';
-      default: return '🐾';
-    }
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'Y tế thú y': return 'red';
-      case 'Chăm sóc sắc đẹp': return 'purple';
-      case 'Chăm sóc': return 'blue';
-      case 'Huấn luyện': return 'orange';
-      case 'Tư vấn': return 'green';
-      default: return 'default';
     }
   };
 
@@ -311,28 +377,28 @@ const ServiceManagement: React.FC = () => {
     {
       title: 'Thông tin dịch vụ',
       dataIndex: 'service',
-      width: '35%',
+      width: showCompact ? '50%' : '45%',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Avatar 
-            size={40} 
+            size={showCompact ? 32 : 40} 
             style={{ 
               backgroundColor: '#f0f8ff',
-              fontSize: '18px'
+              fontSize: showCompact ? '14px' : '18px'
             }}
           >
-            {getServiceIcon(record.category)}
+            🐾
           </Avatar>
           <div>
             <div style={{ 
               fontWeight: 500, 
-              fontSize: '14px',
+              fontSize: showCompact ? '13px' : '14px',
               marginBottom: 2
             }}>
               {record.name}
             </div>
             <div style={{ 
-              fontSize: '12px', 
+              fontSize: showCompact ? '11px' : '12px', 
               color: '#666',
               lineHeight: 1.3
             }}>
@@ -343,23 +409,12 @@ const ServiceManagement: React.FC = () => {
       ),
     },
     {
-      title: 'Danh mục',
-      dataIndex: 'category',
-      width: '12%',
-      sorter: true,
-      render: (category: string) => (
-        <Tag color={getCategoryColor(category)} style={{ margin: 0 }}>
-          {category}
-        </Tag>
-      ),
-    },
-    {
       title: 'Thời gian',
       dataIndex: 'durationMinutes',
-      width: '10%',
+      width: '12%',
       sorter: true,
       render: (minutes: number) => (
-        <span style={{ fontSize: '13px' }}>
+        <span style={{ fontSize: showCompact ? '12px' : '13px' }}>
           {formatDuration(minutes)}
         </span>
       ),
@@ -367,12 +422,13 @@ const ServiceManagement: React.FC = () => {
     {
       title: 'Giá tiền',
       dataIndex: 'price',
-      width: '12%',
+      width: '15%',
       sorter: true,
       render: (price: number) => (
         <span style={{ 
           fontWeight: 500,
-          color: '#d4380d'
+          color: '#d4380d',
+          fontSize: showCompact ? '12px' : '13px'
         }}>
           {formatPrice(price)}
         </span>
@@ -381,11 +437,11 @@ const ServiceManagement: React.FC = () => {
     {
       title: 'Trạng thái',
       dataIndex: 'isActive',
-      width: '10%',
+      width: '12%',
       render: (isActive: boolean) => (
         <Tag 
           color={isActive ? 'green' : 'red'}
-          style={{ margin: 0 }}
+          style={{ margin: 0, fontSize: showCompact ? '11px' : '12px' }}
         >
           {isActive ? 'Hoạt động' : 'Tạm dừng'}
         </Tag>
@@ -394,10 +450,10 @@ const ServiceManagement: React.FC = () => {
     {
       title: 'Ngày tạo',
       dataIndex: 'createdAt',
-      width: '12%',
+      width: '15%',
       sorter: true,
       render: (date: string) => (
-        <span style={{ fontSize: '13px' }}>
+        <span style={{ fontSize: showCompact ? '12px' : '13px' }}>
           {formatDate(date)}
         </span>
       ),
@@ -405,9 +461,9 @@ const ServiceManagement: React.FC = () => {
     {
       title: 'Thao tác',
       dataIndex: 'action',
-      width: '9%',
-      render: () => (
-        <Dropdown menu={{ items: actionItems }} trigger={['click']}>
+      width: '11%',
+      render: (_, record) => (
+        <Dropdown menu={{ items: getActionItems(record) }} trigger={['click']}>
           <Button type="text" icon={<MoreOutlined />} />
         </Dropdown>
       ),
@@ -415,7 +471,6 @@ const ServiceManagement: React.FC = () => {
   ];
 
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
-    console.log('selectedRowKeys changed: ', newSelectedRowKeys);
     setSelectedRowKeys(newSelectedRowKeys);
   };
 
@@ -486,31 +541,52 @@ const ServiceManagement: React.FC = () => {
           </div>
           <Button 
             type="primary" 
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditingService(null);
+              form.resetFields();
+              setIsModalVisible(true);
+            }}
             style={{ 
               height: '40px',
               borderRadius: '6px'
             }}
           >
-            + Thêm dịch vụ mới
+            Thêm dịch vụ mới
           </Button>
         </div>
 
         <div style={{ marginBottom: '20px' }}>
-          <Space size="middle">
+          <Space size="middle" wrap>
             <Search
-              placeholder="Tìm kiếm theo tên, mô tả hoặc danh mục dịch vụ..."
+              placeholder="Tìm kiếm theo tên hoặc mô tả dịch vụ..."
               prefix={<SearchOutlined />}
               style={{ width: 400 }}
               onSearch={handleSearch}
               onChange={(e) => handleSearch(e.target.value)}
               allowClear
             />
-            <Button 
-              icon={<FilterOutlined />} 
-              style={{ height: '32px' }}
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              style={{
+                width: 120,
+                height: 32,
+                border: '1px solid #d9d9d9',
+                borderRadius: '6px',
+                padding: '0 11px',
+                fontSize: '14px'
+              }}
             >
-              Bộ lọc
-            </Button>
+              <option value="">Tất cả</option>
+              <option value="active">Hoạt động</option>
+              <option value="inactive">Tạm dừng</option>
+            </select>
+            {selectedRowKeys.length > 0 && (
+              <Button danger onClick={handleBulkDelete}>
+                Xóa vĩnh viễn đã chọn ({selectedRowKeys.length})
+              </Button>
+            )}
           </Space>
         </div>
 
@@ -523,9 +599,10 @@ const ServiceManagement: React.FC = () => {
             columns={columns}
             dataSource={currentPageData}
             pagination={false}
-            size="middle"
+            size={showCompact ? "small" : "middle"}
             onChange={handleTableChange}
             rowSelection={rowSelection}
+            loading={loading}
             style={{ backgroundColor: 'white' }}
           />
           
@@ -543,16 +620,23 @@ const ServiceManagement: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '14px', color: '#666' }}>Hiển thị:</span>
-                <Select
+                <select
                   value={pageSize}
-                  onChange={handlePageSizeChange}
-                  style={{ width: 60 }}
-                  size="small"
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  style={{
+                    width: 60,
+                    height: 24,
+                    border: '1px solid #d9d9d9',
+                    borderRadius: '4px',
+                    padding: '0 4px',
+                    fontSize: '12px'
+                  }}
                 >
-                  <Option value={5}>5</Option>
-                  <Option value={10}>10</Option>
-                  <Option value={20}>20</Option>
-                </Select>
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Button 
@@ -564,11 +648,11 @@ const ServiceManagement: React.FC = () => {
                   ‹
                 </Button>
                 <span style={{ fontSize: '14px', color: '#666' }}>
-                  {currentPage} / {totalPages}
+                  {currentPage} / {totalPages || 1}
                 </span>
                 <Button 
                   type="text"
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === totalPages || totalPages === 0}
                   onClick={goToNextPage}
                   style={{ padding: '4px 8px' }}
                 >
@@ -583,7 +667,11 @@ const ServiceManagement: React.FC = () => {
             backgroundColor: '#fafafa',
             borderTop: '1px solid #f0f0f0'
           }}>
-            <Checkbox style={{ fontSize: '14px' }}>
+            <Checkbox 
+              checked={showCompact}
+              onChange={(e) => setShowCompact(e.target.checked)}
+              style={{ fontSize: '14px' }}
+            >
               Hiển thị thu gọn
             </Checkbox>
           </div>
@@ -606,8 +694,105 @@ const ServiceManagement: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add/Edit Service Modal */}
+      <Modal
+        title={editingService ? 'Chỉnh sửa dịch vụ' : 'Thêm dịch vụ mới'}
+        open={isModalVisible}
+        onCancel={() => {
+          setIsModalVisible(false);
+          form.resetFields();
+          setEditingService(null);
+        }}
+        footer={null}
+        width={600}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          initialValues={{
+            isActive: true,
+            durationMinutes: 30,
+            price: 0
+          }}
+        >
+          <Form.Item
+            name="name"
+            label="Tên dịch vụ"
+            rules={[{ required: true, message: 'Vui lòng nhập tên dịch vụ' }]}
+          >
+            <Input placeholder="Nhập tên dịch vụ" />
+          </Form.Item>
+
+          <Form.Item
+            name="description"
+            label="Mô tả"
+            rules={[{ required: true, message: 'Vui lòng nhập mô tả dịch vụ' }]}
+          >
+            <TextArea rows={3} placeholder="Nhập mô tả chi tiết về dịch vụ" />
+          </Form.Item>
+
+          <div style={{ display: 'flex', gap: '16px' }}>
+            <Form.Item
+              name="durationMinutes"
+              label="Thời gian (phút)"
+              rules={[{ required: true, message: 'Vui lòng nhập thời gian' }]}
+              style={{ flex: 1 }}
+            >
+              <InputNumber 
+                min={1} 
+                max={480} 
+                style={{ width: '100%' }}
+                placeholder="30"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="price"
+              label="Giá tiền (VND)"
+              rules={[{ required: true, message: 'Vui lòng nhập giá tiền' }]}
+              style={{ flex: 1 }}
+            >
+              <InputNumber 
+                min={0} 
+                style={{ width: '100%' }}
+                formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                placeholder="100,000"
+              />
+            </Form.Item>
+          </div>
+
+          <Form.Item
+            name="isActive"
+            label="Trạng thái"
+            valuePropName="checked"
+          >
+            <Switch 
+              checkedChildren="Hoạt động" 
+              unCheckedChildren="Tạm dừng" 
+            />
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
+            <Space>
+              <Button onClick={() => {
+                setIsModalVisible(false);
+                form.resetFields();
+                setEditingService(null);
+              }}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                {editingService ? 'Cập nhật' : 'Thêm mới'}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };
 
-export default ServiceManagement;
+export default ServicePage;

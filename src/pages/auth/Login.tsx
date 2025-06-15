@@ -17,7 +17,7 @@ const Login = () => {
       path: "/auth/login",
       method: "POST",
       body: {
-        username: values.email,
+        usernameOrEmail: values.email,
         password: values.password,
       },
       onSuccess: (data) => {
