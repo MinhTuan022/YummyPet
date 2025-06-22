@@ -11,12 +11,14 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -43,29 +45,61 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(OrderCreateRequest request) {
-        log.info("Creating order for customer: {}", request.getCustomerId());
 
-        // Validate customer
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new EntityNotFoundException("Khách hàng không tồn tại"));
+        Customer customer = null;
+        boolean isGuestOrder = false;
 
-        if (!customer.getIsActive()) {
-            throw new IllegalArgumentException("Khách hàng đã bị vô hiệu hóa");
+        if (request.getCustomerId() != null) {
+            customer = customerRepository.findById(request.getCustomerId())
+                    .orElseThrow(() -> new EntityNotFoundException("Khách hàng không tồn tại"));
+
+            if (!customer.getIsActive()) {
+                throw new IllegalArgumentException("Khách hàng đã bị vô hiệu hóa");
+            }
+
+            log.info("Creating in-store order for registered customer: {}", request.getCustomerId());
+        } else {
+            // Đơn hàng cho khách vãng lai
+            isGuestOrder = true;
+
+            if (request.getGuestName() != null && !request.getGuestName().trim().isEmpty()) {
+                log.info("Creating in-store order for guest customer: {}", request.getGuestName());
+            } else {
+                log.info("Creating in-store order for anonymous guest customer");
+            }
         }
-
-        // Create order
         Order order = new Order();
         order.setOrderCode(codeGeneratorService.generateOrderCode());
-        order.setCustomer(customer);
+        if (customer != null) {
+            // Khách hàng đã đăng ký
+            order.setCustomer(customer);
+            order.setLoyaltyPointsUsed(request.getLoyaltyPointsUsed());
+            order.setIsGuestOrder(false);
+        } else {
+            // Đơn hàng khách vãng lai
+
+            if (request.getGuestName() != null && !request.getGuestName().trim().isEmpty()) {
+                order.setGuestName(request.getGuestName());
+            } else {
+                // Khách vãng lai ẩn danh
+                order.setGuestName("Khách vãng lai");
+            }
+
+            order.setGuestPhone(request.getGuestPhone());
+
+            order.setIsGuestOrder(true);
+
+            order.setLoyaltyPointsUsed(0);
+        }
+
         order.setPaymentMethod(request.getPaymentMethod());
-        order.setDeliveryAddress(request.getDeliveryAddress());
-        order.setDeliveryMethod(request.getDeliveryMethod());
+        order.setDeliveryAddress("Yummy Store");
+        order.setDeliveryMethod(DeliveryMethod.pickup);
         order.setNotes(request.getNotes());
-        order.setLoyaltyPointsUsed(request.getLoyaltyPointsUsed());
+        order.setOrderSource(OrderSource.in_store);
         order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
         order.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // Validate and apply voucher
         if (request.getVoucherId() != null) {
             Voucher voucher = voucherRepository.findById(request.getVoucherId())
                     .orElseThrow(() -> new EntityNotFoundException("Voucher không tồn tại"));
@@ -76,7 +110,6 @@ public class OrderService {
             order.setVoucher(voucher);
         }
 
-        // Calculate totals
         BigDecimal subtotal = BigDecimal.ZERO;
         for (OrderItemRequest itemRequest : request.getItems()) {
             BigDecimal itemTotal = itemRequest.getUnitPrice()
@@ -86,13 +119,11 @@ public class OrderService {
 
         order.setSubtotal(subtotal);
 
-        // Apply voucher discount
         BigDecimal discountAmount = BigDecimal.ZERO;
         if (order.getVoucher() != null) {
             discountAmount = voucherService.calculateDiscount(order.getVoucher(), subtotal);
         }
 
-        // Apply loyalty points discount
         BigDecimal loyaltyDiscount = BigDecimal.ZERO;
         if (request.getLoyaltyPointsUsed() > 0) {
             if (customer.getLoyaltyPoints() < request.getLoyaltyPointsUsed()) {
@@ -105,20 +136,16 @@ public class OrderService {
         order.setDiscountAmount(totalDiscount);
         order.setTotalAmount(subtotal.subtract(totalDiscount));
 
-        // Save order
         Order savedOrder = orderRepository.save(order);
 
-        // Create order items
         for (OrderItemRequest itemRequest : request.getItems()) {
             createOrderItem(savedOrder, itemRequest);
         }
 
-        // Update loyalty points
         if (request.getLoyaltyPointsUsed() > 0) {
             loyaltyPointService.deductLoyaltyPoints(customer, request.getLoyaltyPointsUsed(), savedOrder);
         }
 
-        // Update voucher usage
         if (savedOrder.getVoucher() != null) {
             voucherService.incrementVoucherUsage(savedOrder.getVoucher());
         }
@@ -150,7 +177,6 @@ public class OrderService {
                 }
 
                 orderItem.setProduct(product);
-                // Update inventory will be handled by InventoryService
             }
             case pet -> {
                 Pet pet = petRepository.findById(request.getPetId())
@@ -161,7 +187,7 @@ public class OrderService {
                 }
 
                 orderItem.setPet(pet);
-                orderItem.setQuantity(1); // Pet is always quantity 1
+                orderItem.setQuantity(1);
             }
             case service -> {
                 com.example.yummypet.entity.Service service = serviceRepository.findById(request.getServiceId())
@@ -172,20 +198,33 @@ public class OrderService {
                 }
 
                 orderItem.setService(service);
-                orderItem.setCompletionDate(request.getCompletionDate());
-                orderItem.setServiceNotes(request.getServiceNotes());
 
+                // Xử lý thời gian dự kiến hoàn thành dịch vụ
+                if (request.getCompletionDate() != null) {
+                    orderItem.setCompletionDate(request.getCompletionDate().toLocalDateTime());
+                } else {
+                    // Tự động tính toán thời gian dự kiến hoàn thành dựa trên thời lượng dịch vụ
+                    LocalDateTime now = LocalDateTime.now();
+
+                    int durationMinutes = (request.getEstimatedDuration() != null)
+                            ? request.getEstimatedDuration()
+                            : (service.getDurationMinutes() != null ? service.getDurationMinutes() : 60); // Mặc định 60
+                                                                                                          // phút
+
+                    LocalDateTime estimatedCompletion = now.plusMinutes(durationMinutes);
+                    orderItem.setCompletionDate(estimatedCompletion);
+
+                    log.info("Tự động tính thời gian hoàn thành dịch vụ: {} phút, hoàn thành vào {}",
+                            durationMinutes, estimatedCompletion);
+                }
+
+                orderItem.setServiceNotes(request.getServiceNotes());
                 if (request.getAssignedEmployeeId() != null) {
                     Employee employee = employeeRepository.findById(request.getAssignedEmployeeId())
                             .orElseThrow(() -> new EntityNotFoundException("Nhân viên không tồn tại"));
                     orderItem.setAssignedEmployee(employee);
                 }
 
-                if (request.getPetIdServiced() != null) {
-                    Pet petServiced = petRepository.findById(request.getPetIdServiced())
-                            .orElseThrow(() -> new EntityNotFoundException("Thú cưng phục vụ không tồn tại"));
-                    orderItem.setPetServiced(petServiced);
-                }
             }
         }
 
@@ -202,16 +241,23 @@ public class OrderService {
     public Order getOrderByCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode)
                 .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy đơn hàng với mã: " + orderCode));
-    }
-
-    @Transactional(readOnly = true)
+    }    @Transactional(readOnly = true)
     public Page<Order> getAllOrders(Pageable pageable, Integer customerId, OrderStatus status,
-                                    LocalDate fromDate, LocalDate toDate) {
+            LocalDate fromDate, LocalDate toDate) {
+        // Đảm bảo pageable có sắp xếp theo createdAt giảm dần (mới nhất trước)
+        // Ưu tiên sắp xếp từ client, nếu không có thì sử dụng sắp xếp mặc định
+        if (pageable.getSort().isEmpty()) {
+            pageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+            );
+        }
+        
         return orderRepository.findOrdersWithFilters(customerId, status, fromDate, toDate, pageable);
-    }
-
-    @Transactional(readOnly = true)
+    }    @Transactional(readOnly = true)
     public Page<Order> getOrdersByCustomerId(Integer customerId, Pageable pageable) {
+        // Phương thức repository đã có sẵn sắp xếp OrderByCreatedAtDesc
         return orderRepository.findByCustomerIdOrderByCreatedAtDesc(customerId, pageable);
     }
 
@@ -224,15 +270,20 @@ public class OrderService {
             return order;
         }
 
-        // Validate status transition
         validateStatusTransition(oldStatus, status);
 
         order.setStatus(status);
         order.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
 
+        if (Boolean.TRUE.equals(order.getIsGuestOrder()) && oldStatus == OrderStatus.pending
+                && status == OrderStatus.completed) {
+
+            order.setPaymentStatus(PaymentStatus.paid);
+            log.info("Auto-updating payment status to PAID for guest order: {}", order.getOrderCode());
+        }
+
         Order updatedOrder = orderRepository.save(order);
 
-        // Handle side effects based on status change
         handleStatusChange(updatedOrder, oldStatus, status);
 
         log.info("Updated order {} status from {} to {}", order.getOrderCode(), oldStatus, status);
@@ -240,10 +291,9 @@ public class OrderService {
     }
 
     private void validateStatusTransition(OrderStatus from, OrderStatus to) {
-        // Define valid transitions
         switch (from) {
             case pending -> {
-                if (to != OrderStatus.confirmed && to != OrderStatus.cancelled) {
+                if (to != OrderStatus.confirmed && to != OrderStatus.cancelled && to != OrderStatus.completed) {
                     throw new IllegalArgumentException("Không thể chuyển từ pending sang " + to);
                 }
             }
@@ -271,24 +321,70 @@ public class OrderService {
     private void handleStatusChange(Order order, OrderStatus oldStatus, OrderStatus newStatus) {
         switch (newStatus) {
             case confirmed -> {
-                // Update inventory when order is confirmed
                 inventoryService.updateInventoryAfterOrder(order);
+
+                updateServiceItemsStatus(order, ServiceStatus.in_progress);
+            }
+            case processing -> {
+            }
+            case ready -> {
+            }
+            case pending -> {
             }
             case completed -> {
-                // Award loyalty points when order is completed
-                if (order.getPaymentStatus() == PaymentStatus.paid) {
+                if (Boolean.TRUE.equals(order.getIsGuestOrder()) && oldStatus == OrderStatus.pending) {
+
+                    inventoryService.updateInventoryAfterOrder(order);
+                    log.info("Updated inventory for direct completion of guest order: {}", order.getOrderCode());
+
+                    updateServiceItemsStatus(order, ServiceStatus.completed);
+                }
+
+                if (order.getPaymentStatus() == PaymentStatus.paid && order.getCustomer() != null) {
                     loyaltyPointService.earnPointsFromOrder(order);
+                }
+
+                if (oldStatus != OrderStatus.pending) {
+                    updateServiceItemsStatus(order, ServiceStatus.completed);
                 }
             }
             case cancelled -> {
-                // Restore inventory when order is cancelled
                 if (oldStatus == OrderStatus.confirmed || oldStatus == OrderStatus.processing) {
                     inventoryService.restoreInventoryAfterCancelOrder(order);
                 }
-                // Restore loyalty points if they were used
-                if (order.getLoyaltyPointsUsed() > 0) {
+                if (order.getLoyaltyPointsUsed() > 0 && order.getCustomer() != null) {
                     loyaltyPointService.restoreLoyaltyPoints(order.getCustomer(), order.getLoyaltyPointsUsed(), order);
                 }
+
+                updateServiceItemsStatus(order, ServiceStatus.cancelled);
+            }
+        }
+    }
+
+    private void updateServiceItemsStatus(Order order, ServiceStatus status) {
+        if (order.getOrderItems() == null) {
+            return;
+        }
+
+        for (OrderItem item : order.getOrderItems()) {
+            if (item.getItemType() == ItemType.service) {
+                if (item.getServiceStatus() == ServiceStatus.completed ||
+                        item.getServiceStatus() == ServiceStatus.cancelled) {
+                    continue;
+                }
+
+                if (status == ServiceStatus.pending && item.getServiceStatus() == ServiceStatus.in_progress) {
+                    continue;
+                }
+
+                item.setServiceStatus(status);
+
+                if (status == ServiceStatus.completed) {
+                    item.setActualCompletionDate(LocalDateTime.now());
+                }
+
+                orderItemRepository.save(item);
+                log.info("Updated service item {} status to {}", item.getId(), status);
             }
         }
     }
@@ -337,7 +433,6 @@ public class OrderService {
 
         Order updatedOrder = orderRepository.save(order);
 
-        // Award loyalty points if order is completed
         if (updatedOrder.getStatus() == OrderStatus.completed) {
             loyaltyPointService.earnPointsFromOrder(updatedOrder);
         }
@@ -358,7 +453,6 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderStatisticsResponse getOrderStatistics(LocalDate fromDate, LocalDate toDate) {
-        // Set default dates if not provided
         if (fromDate == null) {
             fromDate = LocalDate.now().minusDays(30);
         }
@@ -372,11 +466,12 @@ public class OrderService {
         Long cancelledOrders = orderRepository.countOrdersByStatusAndDateRange(OrderStatus.cancelled, fromDate, toDate);
 
         BigDecimal totalRevenue = orderRepository.sumTotalAmountByDateRange(fromDate, toDate);
-        if (totalRevenue == null) totalRevenue = BigDecimal.ZERO;
+        if (totalRevenue == null)
+            totalRevenue = BigDecimal.ZERO;
 
-        BigDecimal averageOrderValue = totalOrders > 0 ?
-                totalRevenue.divide(BigDecimal.valueOf(totalOrders), 2, BigDecimal.ROUND_HALF_UP) :
-                BigDecimal.ZERO;
+        BigDecimal averageOrderValue = totalOrders > 0
+                ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), RoundingMode.HALF_UP)
+                : BigDecimal.ZERO;
 
         Long totalCustomers = orderRepository.countDistinctCustomersByDateRange(fromDate, toDate);
         Long serviceOrders = orderRepository.countOrdersByItemTypeAndDateRange(ItemType.service, fromDate, toDate);
@@ -386,7 +481,161 @@ public class OrderService {
         return new OrderStatisticsResponse(
                 totalOrders, pendingOrders, completedOrders, cancelledOrders,
                 totalRevenue, averageOrderValue, totalCustomers,
-                serviceOrders, productOrders, petOrders
-        );
+                serviceOrders, productOrders, petOrders);
+    }
+
+    @Transactional
+    public Order createOnlineOrder(OrderCreateRequest request) {
+        log.info("Creating online order for customer: {}", request.getCustomerId());
+
+        Customer customer = customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new EntityNotFoundException("Khách hàng không tồn tại"));
+
+        if (!customer.getIsActive()) {
+            throw new IllegalArgumentException("Khách hàng đã bị vô hiệu hóa");
+        }
+
+        if (!StringUtils.hasText(request.getDeliveryAddress())) {
+            throw new IllegalArgumentException("Địa chỉ giao hàng là bắt buộc cho đơn hàng online");
+        }
+
+        Order order = new Order();
+        order.setOrderCode(codeGeneratorService.generateOrderCode());
+        order.setCustomer(customer);
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setDeliveryAddress(request.getDeliveryAddress());
+        order.setDeliveryMethod(request.getDeliveryMethod());
+        order.setNotes(request.getNotes());
+        order.setLoyaltyPointsUsed(request.getLoyaltyPointsUsed());
+        order.setOrderSource(OrderSource.online); 
+        order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        order.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+
+        if (request.getVoucherId() != null) {
+            Voucher voucher = voucherRepository.findById(request.getVoucherId())
+                    .orElseThrow(() -> new EntityNotFoundException("Voucher không tồn tại"));
+
+            if (!voucherService.isVoucherValid(voucher)) {
+                throw new IllegalArgumentException("Voucher không hợp lệ hoặc đã hết hạn");
+            }
+            order.setVoucher(voucher);
+        }
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            if (itemRequest.getItemType() == ItemType.service) {
+                throw new IllegalArgumentException("Đơn hàng online không thể bao gồm dịch vụ");
+            }
+
+            BigDecimal itemTotal = itemRequest.getUnitPrice()
+                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            subtotal = subtotal.add(itemTotal);
+        }
+
+        order.setSubtotal(subtotal);
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (order.getVoucher() != null) {
+            discountAmount = voucherService.calculateDiscount(order.getVoucher(), subtotal);
+        }
+
+        BigDecimal loyaltyDiscount = BigDecimal.ZERO;
+        if (request.getLoyaltyPointsUsed() > 0) {
+            if (customer.getLoyaltyPoints() < request.getLoyaltyPointsUsed()) {
+                throw new IllegalArgumentException("Điểm tích lũy không đủ");
+            }
+            loyaltyDiscount = loyaltyPointService.calculateLoyaltyDiscount(request.getLoyaltyPointsUsed());
+        }
+
+        BigDecimal totalDiscount = discountAmount.add(loyaltyDiscount);
+        order.setDiscountAmount(totalDiscount);
+        order.setTotalAmount(subtotal.subtract(totalDiscount));
+
+        Order savedOrder = orderRepository.save(order);
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            createOrderItem(savedOrder, itemRequest);
+        }
+
+        if (request.getLoyaltyPointsUsed() > 0) {
+            loyaltyPointService.deductLoyaltyPoints(customer, request.getLoyaltyPointsUsed(), savedOrder);
+        }
+
+        if (savedOrder.getVoucher() != null) {
+            voucherService.incrementVoucherUsage(savedOrder.getVoucher());
+        }
+
+        log.info("Online order created successfully with code: {}", savedOrder.getOrderCode());
+        return savedOrder;
+    }
+
+    @Transactional
+    public Order createAnonymousOrder(OrderCreateRequest request) {
+        log.info("Creating in-store order for anonymous guest");
+
+        Order order = new Order();
+        order.setOrderCode(codeGeneratorService.generateOrderCode());
+
+        order.setIsGuestOrder(true);
+        order.setGuestName("Khách vãng lai");
+
+        order.setPaymentMethod(request.getPaymentMethod());
+        order.setDeliveryMethod(request.getDeliveryMethod());
+        order.setNotes(request.getNotes());
+        order.setLoyaltyPointsUsed(0); 
+        order.setOrderSource(OrderSource.in_store);
+        order.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+        order.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
+
+        if (request.getVoucherId() != null) {
+            Voucher voucher = voucherRepository.findById(request.getVoucherId())
+                    .orElseThrow(() -> new EntityNotFoundException("Voucher không tồn tại"));
+
+            if (!voucherService.isVoucherValid(voucher)) {
+                throw new IllegalArgumentException("Voucher không hợp lệ hoặc đã hết hạn");
+            }
+            order.setVoucher(voucher);
+        }
+
+        BigDecimal subtotal = BigDecimal.ZERO;
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            BigDecimal itemTotal = itemRequest.getUnitPrice()
+                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+            subtotal = subtotal.add(itemTotal);
+        }
+
+        order.setSubtotal(subtotal);
+
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        if (order.getVoucher() != null) {
+            discountAmount = voucherService.calculateDiscount(order.getVoucher(), subtotal);
+        }
+
+        order.setDiscountAmount(discountAmount);
+        order.setTotalAmount(subtotal.subtract(discountAmount));
+
+        Order savedOrder = orderRepository.save(order);
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            createOrderItem(savedOrder, itemRequest);
+        }
+
+        if (savedOrder.getVoucher() != null) {
+            voucherService.incrementVoucherUsage(savedOrder.getVoucher());
+        }
+
+        return orderRepository.findById(savedOrder.getId()).orElseThrow();
+    }    @Transactional(readOnly = true)
+    public Page<Order> getGuestOrders(Pageable pageable) {
+        // Đảm bảo pageable có sắp xếp theo createdAt giảm dần (mới nhất trước)
+        if (pageable.getSort().isEmpty()) {
+            pageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+            );
+        }
+        
+        return orderRepository.findByIsGuestOrderTrue(pageable);
     }
 }

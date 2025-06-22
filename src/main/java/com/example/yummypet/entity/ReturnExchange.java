@@ -24,9 +24,8 @@ public class ReturnExchange {
 
     @ManyToOne
     @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
-
-    @Enumerated(EnumType.STRING)
+    private Customer customer;    @Enumerated(EnumType.STRING)
+    @Column(name = "return_type")
     private ReturnExchangeType type;
 
     @Column(nullable = false)
@@ -39,10 +38,9 @@ public class ReturnExchange {
     private BigDecimal refundAmount;
 
     @Enumerated(EnumType.STRING)
-    private ReturnStatus status = ReturnStatus.pending;
-
-    @ManyToOne
+    private ReturnStatus status = ReturnStatus.pending;    @ManyToOne
     @JoinColumn(name = "processed_by")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User processedBy;
 
     @Column(name = "processed_at")

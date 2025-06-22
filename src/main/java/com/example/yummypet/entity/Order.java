@@ -1,9 +1,13 @@
 package com.example.yummypet.entity;
 
 import com.example.yummypet.enums.DeliveryMethod;
+import com.example.yummypet.enums.OrderSource;
 import com.example.yummypet.enums.OrderStatus;
 import com.example.yummypet.enums.PaymentMethod;
 import com.example.yummypet.enums.PaymentStatus;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -14,17 +18,25 @@ import java.util.List;
 @Entity
 @Data
 @Table(name = "orders")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "order_code", nullable = false, unique = true, length = 20)
-    private String orderCode;
-
-    @ManyToOne
-    @JoinColumn(name = "customer_id", nullable = false)
+    private String orderCode;    @ManyToOne
+    @JoinColumn(name = "customer_id", nullable = true)
     private Customer customer;
+    
+    @Column(name = "guest_name")
+    private String guestName;
+    
+    @Column(name = "guest_phone")
+    private String guestPhone;
+    
+    @Column(name = "is_guest_order")
+    private Boolean isGuestOrder = false;
 
     private BigDecimal subtotal;
 
@@ -54,10 +66,12 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "delivery_method")
-    private DeliveryMethod deliveryMethod = DeliveryMethod.pickup;
+    private DeliveryMethod deliveryMethod = DeliveryMethod.pickup;    @Enumerated(EnumType.STRING)
+    private OrderStatus status = OrderStatus.pending;
 
     @Enumerated(EnumType.STRING)
-    private OrderStatus status = OrderStatus.pending;
+    @Column(name = "order_source")
+    private OrderSource orderSource = OrderSource.in_store;
 
     private String notes;
 
@@ -68,6 +82,7 @@ public class Order {
     private Timestamp updatedAt;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<OrderItem> orderItems;
 
 }

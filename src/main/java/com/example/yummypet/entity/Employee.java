@@ -18,10 +18,9 @@ import java.time.LocalDate;
 public class Employee {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
-    @OneToOne
+    private Integer id;    @OneToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     @Column(name = "employee_code", nullable = false, unique = true, length = 20)
@@ -42,9 +41,8 @@ public class Employee {
 
     private BigDecimal salary;
     private String position;
-    private String department;
-
-    @Column(name = "is_active")
+    private String department;    @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 
     @Column(name = "created_at")

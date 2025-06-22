@@ -1,6 +1,8 @@
 package com.example.yummypet.entity;
 
 import com.example.yummypet.enums.Gender;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,16 +18,16 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Customer {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "customer_code", unique = true, length = 20)
-    private String customerCode;
-
-    @ManyToOne
+    private String customerCode;    @ManyToOne
     @JoinColumn(name = "user_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private User user;
 
     private String fullName;
@@ -38,9 +40,11 @@ public class Customer {
     @Enumerated(EnumType.STRING)
     private Gender gender;
 
+    @Builder.Default
     private Integer loyaltyPoints = 0;
 
     @Column(name = "is_active")
+    @Builder.Default
     private Boolean isActive = true;
 
     @Column(name = "created_at")

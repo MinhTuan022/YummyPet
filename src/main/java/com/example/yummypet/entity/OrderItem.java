@@ -2,6 +2,7 @@ package com.example.yummypet.entity;
 
 import com.example.yummypet.enums.ItemType;
 import com.example.yummypet.enums.ServiceStatus;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -20,6 +21,7 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "order_id", nullable = false)
+    @JsonBackReference
     private Order order;
 
     @Enumerated(EnumType.STRING)
@@ -42,7 +44,6 @@ public class OrderItem {
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
 
-    // Trường cho dịch vụ
     private LocalDateTime completionDate;
     private LocalDateTime actualCompletionDate;
 
@@ -51,14 +52,8 @@ public class OrderItem {
 
     @ManyToOne
     @JoinColumn(name = "assigned_employee_id")
-    private Employee assignedEmployee;
-
-    @Column(name = "service_notes")
+    private Employee assignedEmployee;    @Column(name = "service_notes")
     private String serviceNotes;
-
-    @ManyToOne
-    @JoinColumn(name = "pet_id_serviced")
-    private Pet petServiced;
 
     @Column(name = "service_details")
     private String serviceDetails;

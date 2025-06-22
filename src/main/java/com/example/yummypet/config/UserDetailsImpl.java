@@ -11,11 +11,10 @@ import java.util.List;
 
 @RequiredArgsConstructor
 public class UserDetailsImpl implements UserDetails {
-    private final User user;
-
-    @Override
+    private final User user;    @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(user.getRole().getName()));
+        String roleName = user.getRole().getName();
+        return List.of(new SimpleGrantedAuthority(roleName));
     }
 
     @Override public String getPassword() { return user.getPasswordHash(); }

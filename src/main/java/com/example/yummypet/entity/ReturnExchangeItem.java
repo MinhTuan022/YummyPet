@@ -14,11 +14,13 @@ import java.sql.Timestamp;
 public class ReturnExchangeItem {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
-
-    @ManyToOne
+    private Integer id;    @ManyToOne
     @JoinColumn(name = "return_exchange_id", nullable = false)
     private ReturnExchange returnExchange;
+    
+    @ManyToOne
+    @JoinColumn(name = "order_item_id", nullable = false)
+    private OrderItem orderItem;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "item_type", nullable = false)

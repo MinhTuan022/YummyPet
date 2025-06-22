@@ -70,4 +70,11 @@ public class Pet {
 
     @Column(name = "updated_at")
     private Timestamp updatedAt;
+
+    @Transient
+    private String imageUrl;
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
 }
