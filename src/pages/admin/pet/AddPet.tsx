@@ -39,68 +39,70 @@ const { Dragger } = Upload;
 interface Category {
   id: number;
   name: string;
+  description: string;
+  parentId: any;
+  parentName: any;
+  categoryType: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: any;
 }
 
 interface AddPetFormData {
   name: string;
-  description: string;
-  price: number;
-  stockQuantity: number;
-  ageMonths: number;
-  breed: string;
-  color: string;
-  gender: "male" | "female";
-  healthStatus: string;
-  vaccinationStatus: string;
-  certificateInfo: string;
-  weight: number;
-  imageUrl: string;
-  isActive: boolean;
   categoryId: number;
+  species: string;
+  breed: string;
+  gender: "male" | "female" | "other";
+  ageMonths: number;
+  weight: number;
+  color: string;
+  price: number;
+  description?: string;
+  arrivalDate: string;
+  status: "available" | "sold";
+  certificateInfo?: string;
+  healthStatus: "excellent" | "good" | "fair" | "poor";
+  vaccinationStatus: "fully_vaccinated" | "partially_vaccinated" | "not_vaccinated";
+  isActive: boolean;
+  primaryImageUrl?: string;
+  images?: Array<{
+    imageUrl: string;
+    altText?: string;
+    isPrimary?: boolean;
+    displayOrder?: number;
+  }>;
 }
 
 const AddPet: React.FC = () => {
   const [form] = Form.useForm();
-  const [description, setDescription] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [description, setDescription] = useState("");  const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [fileList, setFileList] = useState<UploadFile[]>([]);
-  const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [primaryImageIndex, setPrimaryImageIndex] = useState<number>(0);
 
-  // Fetch categories on component mount
   useEffect(() => {
     fetchCategories();
   }, []);
-
   const fetchCategories = () => {
     _request({
-      path: "/categories",
+      path: "/categories/all",
       method: "GET",
       onSuccess(response) {
         if (response.success && response.data) {
-          setCategories(response.data);
+          const petCategories = response.data.filter((cat: Category) => cat.categoryType === 'pet');
+          setCategories(petCategories);
         }
       },
       onError(error) {
         console.log("Failed to fetch categories:", error);
         message.error("Failed to load categories");
       },
-    });
-  };
-
-  // Method 1: Convert image to base64 string
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
+    });  };
   const uploadProps = {
     name: "file",
-    multiple: false,
+    multiple: true, 
     accept: ".png,.jpg,.jpeg",
     fileList,
     beforeUpload: (file: File) => {
@@ -118,26 +120,12 @@ const AddPet: React.FC = () => {
     },
     customRequest: async ({ file, onSuccess, onError }: any) => {
       try {
-        // Method 1: Convert to base64 (recommended for small images)
-        // const base64String = await convertToBase64(file);
-        // setImageUrl(base64String);
-        // onSuccess({ url: base64String });
-        // message.success(`${file.name} processed successfully`);
-
-        // Method 2: Use object URL (alternative approach)
         const objectUrl = URL.createObjectURL(file);
-        setImageUrl(objectUrl);
+        
+        setImageUrls(prev => [...prev, objectUrl]);
+        
         onSuccess({ url: objectUrl });
         message.success(`${file.name} processed successfully`);
-
-        // Method 3: Store file reference for later upload
-        // You can store the file and upload it when submitting the form
-        // setImageFile(file);
-        // const previewUrl = URL.createObjectURL(file);
-        // setImageUrl(previewUrl);
-        // onSuccess({ url: previewUrl });
-        // message.success(`${file.name} ready for upload`);
-
       } catch (error) {
         onError(error);
         message.error(`${file.name} processing failed`);
@@ -145,10 +133,18 @@ const AddPet: React.FC = () => {
     },
     onChange({ fileList: newFileList }: { fileList: UploadFile[] }) {
       setFileList(newFileList);
+      
+      if (newFileList.length < imageUrls.length) {
+        const validUrls = newFileList
+          .map(file => file.response?.url)
+          .filter(Boolean);
+        setImageUrls(validUrls);
+      }
     },
-    onRemove: () => {
-      setImageUrl("");
-      setFileList([]);
+    onRemove: (file: UploadFile) => {
+      if (file.response?.url) {
+        setImageUrls(prev => prev.filter(url => url !== file.response.url));
+      }
     },
     onDrop(e: React.DragEvent) {
       console.log("Dropped files", e.dataTransfer.files);
@@ -164,34 +160,41 @@ const AddPet: React.FC = () => {
 
   const formatText = (type: string) => {
     console.log(`Format ${type} applied`);
-  };
-
-  const handleSubmit = async () => {
+  };  const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
 
+      const images = imageUrls.map((url, index) => ({
+        imageUrl: url,
+        altText: `${values.name} - Image ${index + 1}`,
+        isPrimary: index === primaryImageIndex,
+        displayOrder: index
+      }));
+
       const petData: AddPetFormData = {
         name: values.name,
-        description: values.description || description,
-        price: values.price,
-        stockQuantity: values.stockQuantity,
-        ageMonths: values.ageMonths,
+        categoryId: parseInt(values.categoryId),
+        species: values.species,
         breed: values.breed,
-        color: values.color,
         gender: values.gender,
+        ageMonths: values.ageMonths,
+        weight: values.weight,
+        color: values.color,
+        price: values.price,
+        description: values.description || description,
+        arrivalDate: values.arrivalDate || new Date().toISOString().split('T')[0],
+        status: "available",
+        certificateInfo: values.certificateInfo || "",
         healthStatus: values.healthStatus,
         vaccinationStatus: values.vaccinationStatus,
-        certificateInfo: values.certificateInfo || "",
-        weight: values.weight,
-        imageUrl: imageUrl, // This will be base64 string or object URL
-        isPet: true,
         isActive: values.isActive !== undefined ? values.isActive : true,
-        categoryId: parseInt(values.categoryId),
+        primaryImageUrl: imageUrls[primaryImageIndex] || "",
+        images: images.length > 0 ? images : undefined,
       };
 
       _request({
-        path: "/admin/products",
+        path: "/pets",
         method: "POST",
         body: petData,
         onSuccess(response) {
@@ -200,7 +203,8 @@ const AddPet: React.FC = () => {
             form.resetFields();
             setDescription("");
             setFileList([]);
-            setImageUrl("");
+            setImageUrls([]);
+            setPrimaryImageIndex(0);
           }
           setLoading(false);
         },
@@ -216,12 +220,12 @@ const AddPet: React.FC = () => {
       setLoading(false);
     }
   };
-
   const handleCancel = () => {
     form.resetFields();
     setDescription("");
     setFileList([]);
-    setImageUrl("");
+    setImageUrls([]);
+    setPrimaryImageIndex(0);
   };
 
   return (
@@ -301,23 +305,32 @@ const AddPet: React.FC = () => {
                     name="gender"
                     rules={[
                       { required: true, message: "Giới tính là bắt buộc" },
-                    ]}
-                  >
+                    ]}                  >
                     <Select placeholder="Chọn giới tính">
                       <Option value="male">Đực</Option>
                       <Option value="female">Cái</Option>
+                      <Option value="other">Khác</Option>
                     </Select>
                   </Form.Item>
                 </Col>
-              </Row>
-
-              <Form.Item
+              </Row>              <Form.Item
                 label={<span>Giống</span>}
                 name="breed"
                 rules={[{ required: true, message: "Giống là bắt buộc" }]}
               >
                 <Input
                   placeholder="Nhập giống thú cưng"
+                  className="product-name-input"
+                />
+              </Form.Item>
+
+              <Form.Item
+                label={<span>Loài</span>}
+                name="species"
+                rules={[{ required: true, message: "Loài là bắt buộc" }]}
+              >
+                <Input
+                  placeholder="VD: Chó, Mèo, Chim..."
                   className="product-name-input"
                 />
               </Form.Item>
@@ -333,16 +346,13 @@ const AddPet: React.FC = () => {
                   <InboxOutlined
                     style={{ fontSize: "48px", color: "#1890ff" }}
                   />
-                </p>
-                <p className="ant-upload-text">
-                  Kéo thả hình ảnh vào đây hoặc click để chọn file
+                </p>                <p className="ant-upload-text">
+                  Kéo thả hình ảnh vào đây hoặc click để chọn nhiều file
                 </p>
                 <p className="ant-upload-hint">
-                  Chỉ chấp nhận file ảnh (PNG, JPG, JPEG) dưới 5MB
+                  Chỉ chấp nhận file ảnh (PNG, JPG, JPEG) dưới 5MB. Có thể chọn nhiều ảnh cùng lúc.
                 </p>
-              </Dragger>
-
-              {/* Option to input image URL manually */}
+              </Dragger>              
               <Form.Item
                 label={<span>Hoặc nhập URL hình ảnh</span>}
                 name="imageUrlInput"
@@ -352,28 +362,71 @@ const AddPet: React.FC = () => {
                   placeholder="https://example.com/image.jpg"
                   onChange={(e) => {
                     if (e.target.value) {
-                      setImageUrl(e.target.value);
-                      setFileList([]); // Clear file list if URL is provided
+                      setImageUrls(prev => [...prev, e.target.value]);
+                      setFileList([]); 
                     }
                   }}
                 />
               </Form.Item>
 
-              {/* Preview image */}
-              {imageUrl && (
+              {imageUrls.length > 0 && (
                 <div style={{ marginTop: 16 }}>
                   <Title level={5}>Xem trước hình ảnh:</Title>
-                  <img
-                    src={imageUrl}
-                    alt="Preview"
-                    style={{
-                      width: "200px",
-                      height: "200px",
-                      objectFit: "cover",
-                      border: "1px solid #d9d9d9",
-                      borderRadius: "6px",
-                    }}
-                  />
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+                    {imageUrls.map((url, index) => (
+                      <div key={index} style={{ position: 'relative' }}>
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          style={{
+                            width: "150px",
+                            height: "150px",
+                            objectFit: "cover",
+                            border: primaryImageIndex === index ? "3px solid #1890ff" : "1px solid #d9d9d9",
+                            borderRadius: "6px",
+                            cursor: "pointer"
+                          }}
+                          onClick={() => setPrimaryImageIndex(index)}
+                        />
+                        {primaryImageIndex === index && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '5px',
+                            left: '5px',
+                            background: '#1890ff',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '12px'
+                          }}>
+                            Ảnh chính
+                          </div>
+                        )}
+                        <Button
+                          type="text"
+                          danger
+                          size="small"
+                          style={{
+                            position: 'absolute',
+                            top: '5px',
+                            right: '5px',
+                            background: 'rgba(255,255,255,0.8)'
+                          }}
+                          onClick={() => {
+                            setImageUrls(prev => prev.filter((_, i) => i !== index));
+                            if (primaryImageIndex >= index && primaryImageIndex > 0) {
+                              setPrimaryImageIndex(prev => prev - 1);
+                            }
+                          }}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '12px', color: '#666' }}>
+                    Click vào ảnh để chọn làm ảnh chính
+                  </div>
                 </div>
               )}
 
@@ -483,13 +536,12 @@ const AddPet: React.FC = () => {
                       required: true,
                       message: "Tình trạng sức khỏe là bắt buộc",
                     },
-                  ]}
-                >
+                  ]}                >
                   <Select placeholder="Chọn tình trạng sức khỏe">
-                    <Option value="Excellent">Tuyệt vời</Option>
-                    <Option value="Good">Tốt</Option>
-                    <Option value="Fair">Bình thường</Option>
-                    <Option value="Poor">Kém</Option>
+                    <Option value="excellent">Tuyệt vời</Option>
+                    <Option value="good">Tốt</Option>
+                    <Option value="fair">Bình thường</Option>
+                    <Option value="poor">Kém</Option>
                   </Select>
                 </Form.Item>
 
@@ -501,12 +553,11 @@ const AddPet: React.FC = () => {
                       required: true,
                       message: "Trạng thái tiêm phòng là bắt buộc",
                     },
-                  ]}
-                >
+                  ]}                >
                   <Select placeholder="Chọn trạng thái tiêm phòng">
-                    <Option value="Fully Vaccinated">Đã tiêm đủ</Option>
-                    <Option value="Partially Vaccinated">Tiêm một phần</Option>
-                    <Option value="Not Vaccinated">Chưa tiêm</Option>
+                    <Option value="fully_vaccinated">Đã tiêm đủ</Option>
+                    <Option value="partially_vaccinated">Tiêm một phần</Option>
+                    <Option value="not_vaccinated">Chưa tiêm</Option>
                   </Select>
                 </Form.Item>
 
@@ -519,9 +570,7 @@ const AddPet: React.FC = () => {
                     className="product-name-input"
                   />
                 </Form.Item>
-              </Card>
-
-              <Card className="files-card">
+              </Card>              <Card className="files-card">
                 <Title level={5}>Thông tin bán hàng</Title>
 
                 <Form.Item
@@ -536,20 +585,18 @@ const AddPet: React.FC = () => {
                     formatter={(value) =>
                       `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                     }
-                    // parser={(value) => value!.replace(/\$\s?|(,*)/g, "")}
                     style={{ width: "100%" }}
                   />
                 </Form.Item>
 
                 <Form.Item
-                  label={<span>Số lượng</span>}
-                  name="stockQuantity"
-                  rules={[{ required: true, message: "Số lượng là bắt buộc" }]}
+                  label={<span>Ngày nhập</span>}
+                  name="arrivalDate"
+                  rules={[{ required: true, message: "Ngày nhập là bắt buộc" }]}
                 >
-                  <InputNumber
-                    placeholder="Nhập số lượng"
+                  <Input
+                    type="date"
                     className="product-name-input"
-                    min={0}
                     style={{ width: "100%" }}
                   />
                 </Form.Item>

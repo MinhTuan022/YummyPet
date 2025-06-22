@@ -1,6 +1,6 @@
 .pet-store-dashboard {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  // background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .dashboard-header {
@@ -18,8 +18,45 @@
 
 .dashboard-content {
   background: #ffffff;
-
   padding: 24px;
+  min-height: 100vh;
+}
+
+.dashboard-loading,
+.dashboard-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  // background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.dashboard-title {
+  margin-bottom: 0;
+  color: #333;
+}
+
+.dashboard-header-row {
+  align-items: center;
+}
+
+.refresh-button {
+  background: linear-gradient(90deg, #1890ff, #13c2c2);
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 150, 255, 0.2);
+  transition: all 0.3s;
+}
+
+.refresh-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 150, 255, 0.3);
+}
+
+.empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
 }
 
 .stats-card {
@@ -177,4 +214,75 @@
 
 .recharts-wrapper {
   margin: 0 auto;
+}
+
+// Thêm scrollbar tùy chỉnh
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+// Thêm hiệu ứng cho card
+.stats-card, .chart-card, .table-card, .activity-timeline, .customer-list {
+  transition: all 0.3s;
+}
+
+.stats-card:hover, .chart-card:hover, .table-card:hover, .activity-timeline:hover, .customer-list:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+  transform: translateY(-5px);
+}
+
+// Tăng hiệu ứng cho các tag
+.ant-tag {
+  transition: all 0.3s;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+// Animation loading
+.dashboard-loading {
+  .ant-spin {
+    &::after {
+      content: '';
+      position: absolute;
+      top: -30px;
+      left: -30px;
+      right: -30px;
+      bottom: -30px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      animation: spin-glow 1.5s linear infinite;
+    }
+  }
+}
+
+@keyframes spin-glow {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  50% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
 }

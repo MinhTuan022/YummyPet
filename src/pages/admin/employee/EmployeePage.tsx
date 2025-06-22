@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Input,
@@ -7,7 +7,6 @@ import {
   Dropdown,
   Avatar,
   Checkbox,
-  Space,
   Select,
   Modal,
   Form,
@@ -16,7 +15,6 @@ import {
   message,
   Descriptions,
   Divider,
-  Popconfirm,
 } from "antd";
 import {
   SearchOutlined,
@@ -39,15 +37,13 @@ const { Search } = Input;
 const { Option } = Select;
 const { TextArea } = Input;
 
-const EmployeePage: React.FC = () => {
-  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+const EmployeePage: React.FC = () => {  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [currentPage, setCurrentPage] = useState(0); 
+  const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState("");
-  const [sortField, setSortField] = useState<string>("");
-  const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("ascend");
+  const [sortField, setSortField] = useState<string>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
-  // Modal states
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
@@ -57,75 +53,100 @@ const EmployeePage: React.FC = () => {
     null
   );
 
-  // Forms
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [resetPasswordForm] = Form.useForm();
 
-  const [allEmployeeData, setAllEmployeeData] = useState<Employee[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [loading, setLoading] = useState(false); 
+  const loadEmployees = async (page?: number, search?: string, sort?: string) => {
+    setLoading(true);
+    try {
+      const currentPageIndex = page !== undefined ? page : currentPage;
+      const params = new URLSearchParams({
+        page: currentPageIndex.toString(),
+        size: pageSize.toString(),
+      });
+
+      if (sort) {
+        params.append('sort', sort);
+      }
+
+      if (search && search.trim()) {
+      }
+
+      await _request({
+        path: `/employees?${params.toString()}`,
+        method: "GET",
+        onSuccess(response) {
+          const data = response.data;
+          let employeesData = data.content;
+
+          if (search && search.trim()) {
+            employeesData = employeesData.filter((employee: Employee) =>
+              employee.fullName.toLowerCase().includes(search.toLowerCase()) ||
+              (employee.email && employee.email.toLowerCase().includes(search.toLowerCase())) ||
+              employee.employeeCode.toLowerCase().includes(search.toLowerCase()) ||
+              employee.username.toLowerCase().includes(search.toLowerCase()) ||
+              (employee.position && employee.position.toLowerCase().includes(search.toLowerCase())) ||
+              (employee.department && employee.department.toLowerCase().includes(search.toLowerCase()))
+            );
+          }
+
+          const employeesWithKeys = employeesData.map((employee: any) => ({
+            ...employee,
+            key: employee.id.toString()
+          }));
+          
+          setEmployees(employeesWithKeys);
+          
+          // Update pagination info based on filtered results if using client-side search
+          if (search && search.trim()) {
+            setTotalElements(employeesData.length);
+            setTotalPages(Math.ceil(employeesData.length / pageSize));
+          } else {
+            setTotalElements(data.totalElements);
+            setTotalPages(data.totalPages);
+          }
+        },
+        onError(error) {
+          message.error('Không thể tải danh sách nhân viên');
+          console.error(error);
+        },
+      });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi tải nhân viên');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    _request({
-      path: "/employees",
-      method: "GET",
-      // body: {},
-      onSuccess(data) {
-        setAllEmployeeData(data.data);
-      },
-      onError(error) {
-        message.error(error);
-      },
-    });
-  }, []);
+    loadEmployees();
+  }, []);  // Reload employees when filters or pagination change
+  useEffect(() => {
+    const sortParam = sortField && sortOrder ? `${sortField},${sortOrder}` : undefined;
+    loadEmployees(currentPage, searchText, sortParam);
+  }, [currentPage, pageSize, sortField, sortOrder]);
 
-  const filteredData = useMemo(() => {
-    let filtered = allEmployeeData;
+  // Handle search with debounce effect
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (currentPage !== 0) {
+        setCurrentPage(0); // Reset to first page when searching
+      }
+      const sortParam = sortField && sortOrder ? `${sortField},${sortOrder}` : undefined;
+      loadEmployees(0, searchText, sortParam);
+    }, 300);
 
-    if (searchText) {
-      filtered = filtered.filter(
-        (employee) =>
-          employee.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-          (employee.email &&
-            employee.email.toLowerCase().includes(searchText.toLowerCase())) ||
-          employee.employeeCode
-            .toLowerCase()
-            .includes(searchText.toLowerCase()) ||
-          employee.role.toLowerCase().includes(searchText.toLowerCase()) ||
-          employee.username.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
+    return () => clearTimeout(delayedSearch);
+  }, [searchText]);
 
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-
-        if (sortField === "createdAt" || sortField === "updatedAt") {
-          aValue = new Date(a[sortField as keyof Employee] as string).getTime();
-          bValue = new Date(b[sortField as keyof Employee] as string).getTime();
-        } else {
-          aValue = a[sortField as keyof Employee];
-          bValue = b[sortField as keyof Employee];
-        }
-
-        if (sortOrder === "ascend") {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-
-    return filtered;
-  }, [searchText, sortField, sortOrder, allEmployeeData]);
-
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  // Use server-side data directly
+  const currentPageData = employees;
+  const totalItems = totalElements;
 
   const handleEdit = (employee: Employee) => {
     setSelectedEmployee(employee);
@@ -133,10 +154,13 @@ const EmployeePage: React.FC = () => {
       fullName: employee.fullName,
       email: employee.email,
       phone: employee.phone,
-      role: employee.role,
+      position: employee.position,
+      department: employee.department,
+      salary: employee.salary,
       gender: employee.gender,
       address: employee.address,
       dateOfBirth: employee.dateOfBirth ? dayjs(employee.dateOfBirth) : null,
+      hireDate: employee.hireDate ? dayjs(employee.hireDate) : null,
       isActive: employee.isActive,
     });
     setIsEditModalVisible(true);
@@ -152,10 +176,22 @@ const EmployeePage: React.FC = () => {
     resetPasswordForm.resetFields();
     setIsResetPasswordModalVisible(true);
   };
-
-  const handleDelete = (employee: Employee) => {
-    setAllEmployeeData((prev) => prev.filter((emp) => emp.id !== employee.id));
-    message.success(`Đã xóa nhân viên ${employee.fullName}`);
+  const handleDelete = async (employee: Employee) => {
+    try {
+      await _request({
+        path: `/employees/${employee.id}`,
+        method: "DELETE",
+        onSuccess() {
+          message.success(`Đã xóa nhân viên ${employee.fullName}`);
+          loadEmployees(currentPage, searchText);
+        },
+        onError(error) {
+          message.error(`Lỗi khi xóa nhân viên: ${error}`);
+        },
+      });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi xóa nhân viên');
+    }
   };
 
   const getActionItems = (employee: Employee): MenuProps["items"] => [
@@ -171,12 +207,12 @@ const EmployeePage: React.FC = () => {
       icon: <EditOutlined />,
       onClick: () => handleEdit(employee),
     },
-    {
-      key: "reset-password",
-      label: "Đặt lại mật khẩu",
-      icon: <KeyOutlined />,
-      onClick: () => handleResetPassword(employee),
-    },
+    // {
+    //   key: "reset-password",
+    //   label: "Đặt lại mật khẩu",
+    //   icon: <KeyOutlined />,
+    //   onClick: () => handleResetPassword(employee),
+    // },
     {
       type: "divider",
     },
@@ -196,16 +232,15 @@ const EmployeePage: React.FC = () => {
         });
       },
     },
-  ];
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  ];  const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
-      setSortOrder(sorter.order);
+      setSortOrder(sorter.order === "ascend" ? "asc" : "desc");
+    } else {
+      setSortField("createdAt");
+      setSortOrder("desc");
     }
-  };
-
-  // Helper function to get role display name and color
+  };  
   const getRoleDisplay = (role: string) => {
     const roleMap: { [key: string]: { name: string; color: string } } = {
       ADMIN: { name: "Quản trị viên", color: "red" },
@@ -214,40 +249,51 @@ const EmployeePage: React.FC = () => {
       STAFF: { name: "Nhân viên", color: "blue" },
       ACCOUNTANT: { name: "Kế toán", color: "purple" },
       RECEPTIONIST: { name: "Tiếp tân", color: "cyan" },
-    };
+      // New roleName format from API
+      admin: { name: "Quản trị viên", color: "red" },
+      manager: { name: "Quản lý", color: "orange" },
+      staff: { name: "Nhân viên", color: "blue" },
+      veterinarian: { name: "Bác sĩ thú y", color: "green" },
+      accountant: { name: "Kế toán", color: "purple" },
+      receptionist: { name: "Tiếp tân", color: "cyan" },    };
 
     return roleMap[role] || { name: role, color: "default" };
   };
 
- const handleAddEmployee = async () => {
+  const handleAddEmployee = async () => {
     try {
       const values = await addForm.validateFields();
       
       const newEmployeeData = {
-        fullName: values.fullName,
-        email: values.email || null,
-        phone: values.phone || null,
         username: values.username,
-        // password: "123456",
-        role: values.role,
-        gender: values.gender || null,
+        email: values.email || null,
+        password: values.password,
+        fullName: values.fullName,
+        phone: values.phone || null,
         address: values.address || null,
         dateOfBirth: values.dateOfBirth
           ? values.dateOfBirth.toISOString().split('T')[0]
           : null,
+        hireDate: values.hireDate
+          ? values.hireDate.toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0], 
+        salary: values.salary || 0,
+        position: values.position || 'Staff',
+        department: values.department || 'General',
         isActive: values.isActive ?? true,
-        password: values.password, // Add password for new employee
       };
 
       await _request({
-        path: "/auth/register/admin",
+        path: "/employees",
         method: "POST",
         body: newEmployeeData,
-        onSuccess(data) {
-          setAllEmployeeData((prev) => [data.data, ...prev]);
+        onSuccess(response) {
+          const newEmployee = { ...response.data, key: response.data.id.toString() };
+          setEmployees((prev) => [newEmployee, ...prev]);
           setIsAddModalVisible(false);
           addForm.resetFields();
           message.success("Thêm nhân viên thành công!");
+          loadEmployees(currentPage, searchText);
         },
         onError(error) {
           message.error(`Lỗi khi thêm nhân viên: ${error}`);
@@ -257,8 +303,6 @@ const EmployeePage: React.FC = () => {
       console.error("Add employee error:", error);
     }
   };
-
-  // Edit employee
   const handleEditEmployee = async () => {
     if (!selectedEmployee) return;
 
@@ -269,12 +313,13 @@ const EmployeePage: React.FC = () => {
         fullName: values.fullName,
         email: values.email || null,
         phone: values.phone || null,
-        role: values.role,
-        gender: values.gender || null,
         address: values.address || null,
         dateOfBirth: values.dateOfBirth
           ? values.dateOfBirth.toISOString().split('T')[0]
           : null,
+        salary: values.salary || selectedEmployee.salary,
+        position: values.position || selectedEmployee.position,
+        department: values.department || selectedEmployee.department,
         isActive: values.isActive,
       };
 
@@ -282,15 +327,17 @@ const EmployeePage: React.FC = () => {
         path: `/employees/${selectedEmployee.id}`,
         method: "PUT",
         body: updateData,
-        onSuccess(data) {
-          setAllEmployeeData((prev) =>
+        onSuccess(response) {
+          const updatedEmployee = { ...response.data, key: response.data.id.toString() };
+          setEmployees((prev) =>
             prev.map((emp) =>
-              emp.id === selectedEmployee.id ? { ...emp, ...data.data } : emp
+              emp.id === selectedEmployee.id ? updatedEmployee : emp
             )
           );
           setIsEditModalVisible(false);
           setSelectedEmployee(null);
           message.success("Cập nhật thông tin nhân viên thành công!");
+          loadEmployees(currentPage, searchText);
         },
         onError(error) {
           message.error(`Lỗi khi cập nhật nhân viên: ${error}`);
@@ -301,7 +348,6 @@ const EmployeePage: React.FC = () => {
     }
   };
 
-  // Reset password
   const handleResetPasswordSubmit = async () => {
     if (!selectedEmployee) return;
 
@@ -359,14 +405,21 @@ const EmployeePage: React.FC = () => {
           </div>
         </div>
       ),
-    },
-    {
-      title: "Chức vụ",
-      dataIndex: "role",
+    },    {
+      title: "Chức vụ & Phòng ban",
+      dataIndex: "position",
       sorter: true,
-      render: (role: string) => {
+      render: (position: string, record: Employee) => {
+        const role = record.roleName || record.role || 'staff';
         const roleDisplay = getRoleDisplay(role);
-        return <Tag color={roleDisplay.color}>{roleDisplay.name}</Tag>;
+        return (
+          <div>
+            <Tag color={roleDisplay.color}>{roleDisplay.name}</Tag>
+            <div style={{ fontSize: "11px", color: "#8c8c8c", marginTop: "2px" }}>
+              {position} • {record.department}
+            </div>
+          </div>
+        );
       },
     },
     {
@@ -379,18 +432,18 @@ const EmployeePage: React.FC = () => {
       ),
     },
     {
-      title: "Giới tính",
-      dataIndex: "gender",
-      render: (gender: string | null) => {
-        if (!gender) {
-          return <Tag color="default">Chưa cập nhật</Tag>;
-        }
-        return <Tag color={gender === "Nam" ? "blue" : "pink"}>{gender}</Tag>;
-      },
+      title: "Lương",
+      dataIndex: "salary",
+      sorter: true,
+      render: (salary: number) => (
+        <span style={{ color: "#52c41a", fontWeight: 500 }}>
+          {salary ? `${salary.toLocaleString('vi-VN')} VNĐ` : "Chưa cập nhật"}
+        </span>
+      ),
     },
     {
-      title: "Ngày tạo",
-      dataIndex: "createdAt",
+      title: "Ngày vào làm",
+      dataIndex: "hireDate",
       sorter: true,
       render: (date: string) => new Date(date).toLocaleDateString("vi-VN"),
     },
@@ -426,31 +479,30 @@ const EmployeePage: React.FC = () => {
     selectedRowKeys,
     onChange: onSelectChange,
   };
-
   const handleSearch = (value: string) => {
     setSearchText(value);
-    setCurrentPage(1);
+    setCurrentPage(0); 
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1);
+    setCurrentPage(0); 
   };
 
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
+    if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  const startItem = currentPage * pageSize + 1;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalItems);
 
   return (
     <div
@@ -508,12 +560,12 @@ const EmployeePage: React.FC = () => {
           </div>
         </div>
 
-        <div>
-          <Table
+        <div>          <Table
             columns={columns}
             dataSource={currentPageData}
             pagination={false}
             size="middle"
+            loading={loading}
             onChange={handleTableChange}
             rowSelection={rowSelection}
             style={{ backgroundColor: "#fff" }}
@@ -544,20 +596,19 @@ const EmployeePage: React.FC = () => {
                 <Option value={5}>5</Option>
                 <Option value={10}>10</Option>
                 <Option value={20}>20</Option>
-              </Select>
-              <Button
+              </Select>              <Button
                 type="text"
-                disabled={currentPage === 1}
+                disabled={currentPage === 0}
                 onClick={goToPreviousPage}
               >
                 ‹
               </Button>
               <span style={{ color: "#8c8c8c" }}>
-                {currentPage} của {totalPages}
+                {currentPage + 1} của {totalPages}
               </span>
               <Button
                 type="text"
-                disabled={currentPage === totalPages}
+                disabled={currentPage === totalPages - 1}
                 onClick={goToNextPage}
               >
                 ›
@@ -589,7 +640,6 @@ const EmployeePage: React.FC = () => {
         )}
       </div>
 
-      {/* Add Employee Modal */}
       <Modal
         title="Thêm nhân viên mới"
         open={isAddModalVisible}
@@ -636,25 +686,39 @@ const EmployeePage: React.FC = () => {
             rules={[{ type: "email", message: "Email không hợp lệ!" }]}
           >
             <Input placeholder="Nhập email" />
-          </Form.Item>
-
-          <Form.Item name="phone" label="Số điện thoại">
+          </Form.Item>          <Form.Item name="phone" label="Số điện thoại">
             <Input placeholder="Nhập số điện thoại" />
           </Form.Item>
 
           <Form.Item
-            name="role"
-            label="Chức vụ"
-            rules={[{ required: true, message: "Vui lòng chọn chức vụ!" }]}
+            name="position"
+            label="Vị trí công việc"
+            rules={[{ required: true, message: "Vui lòng nhập vị trí công việc!" }]}
           >
-            <Select placeholder="Chọn chức vụ">
-              <Option value="ADMIN">Quản trị viên</Option>
-              <Option value="MANAGER">Quản lý</Option>
-              {/* <Option value="VETERINARIAN">Bác sĩ thú y</Option> */}
-              <Option value="STAFF">Nhân viên</Option>
-              {/* <Option value="ACCOUNTANT">Kế toán</Option>
-              <Option value="RECEPTIONIST">Tiếp tân</Option> */}
-            </Select>
+            <Input placeholder="Nhập vị trí công việc" />
+          </Form.Item>
+
+          <Form.Item
+            name="department"
+            label="Phòng ban"
+            rules={[{ required: true, message: "Vui lòng nhập phòng ban!" }]}
+          >
+            <Input placeholder="Nhập phòng ban" />
+          </Form.Item>
+
+          <Form.Item name="salary" label="Lương (VND)">
+            <Input type="number" placeholder="Nhập lương" />
+          </Form.Item>
+
+          <Form.Item 
+            name="hireDate" 
+            label="Ngày vào làm"
+            rules={[{ required: true, message: "Vui lòng chọn ngày vào làm!" }]}
+          >
+            <DatePicker
+              style={{ width: "100%" }}
+              placeholder="Chọn ngày vào làm"
+            />
           </Form.Item>
 
           <Form.Item name="gender" label="Giới tính">
@@ -689,7 +753,6 @@ const EmployeePage: React.FC = () => {
         </Form>
       </Modal>
 
-      {/* Edit Employee Modal */}
       <Modal
         title="Chỉnh sửa thông tin nhân viên"
         open={isEditModalVisible}
@@ -717,25 +780,20 @@ const EmployeePage: React.FC = () => {
             rules={[{ type: "email", message: "Email không hợp lệ!" }]}
           >
             <Input placeholder="Nhập email" />
-          </Form.Item>
-
-          <Form.Item name="phone" label="Số điện thoại">
+          </Form.Item>          <Form.Item name="phone" label="Số điện thoại">
             <Input placeholder="Nhập số điện thoại" />
           </Form.Item>
 
-          <Form.Item
-            name="role"
-            label="Chức vụ"
-            rules={[{ required: true, message: "Vui lòng chọn chức vụ!" }]}
-          >
-            <Select placeholder="Chọn chức vụ">
-              <Option value="ADMIN">Quản trị viên</Option>
-              <Option value="MANAGER">Quản lý</Option>
-              <Option value="VETERINARIAN">Bác sĩ thú y</Option>
-              <Option value="STAFF">Nhân viên</Option>
-              <Option value="ACCOUNTANT">Kế toán</Option>
-              <Option value="RECEPTIONIST">Tiếp tân</Option>
-            </Select>
+          <Form.Item name="position" label="Vị trí công việc">
+            <Input placeholder="Nhập vị trí công việc" />
+          </Form.Item>
+
+          <Form.Item name="department" label="Phòng ban">
+            <Input placeholder="Nhập phòng ban" />
+          </Form.Item>
+
+          <Form.Item name="salary" label="Lương (VND)">
+            <Input type="number" placeholder="Nhập lương" />
           </Form.Item>
 
           <Form.Item name="gender" label="Giới tính">
@@ -807,9 +865,7 @@ const EmployeePage: React.FC = () => {
               </Tag>
             </div>
 
-            <Divider />
-
-            <Descriptions column={2} bordered>
+            <Divider />            <Descriptions column={2} bordered>
               <Descriptions.Item label="Mã nhân viên">
                 {selectedEmployee.employeeCode}
               </Descriptions.Item>
@@ -823,9 +879,25 @@ const EmployeePage: React.FC = () => {
                 {selectedEmployee.phone || "Chưa cập nhật"}
               </Descriptions.Item>
               <Descriptions.Item label="Chức vụ">
-                <Tag color={getRoleDisplay(selectedEmployee.role).color}>
-                  {getRoleDisplay(selectedEmployee.role).name}
+                <Tag color={getRoleDisplay(selectedEmployee.roleName || selectedEmployee.role || 'staff').color}>
+                  {getRoleDisplay(selectedEmployee.roleName || selectedEmployee.role || 'staff').name}
                 </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Vị trí công việc">
+                {selectedEmployee.position || "Chưa cập nhật"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Phòng ban">
+                {selectedEmployee.department || "Chưa cập nhật"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Lương">
+                <span style={{ color: "#52c41a", fontWeight: 500 }}>
+                  {selectedEmployee.salary ? `${selectedEmployee.salary.toLocaleString('vi-VN')} VNĐ` : "Chưa cập nhật"}
+                </span>
+              </Descriptions.Item>
+              <Descriptions.Item label="Ngày vào làm">
+                {selectedEmployee.hireDate
+                  ? new Date(selectedEmployee.hireDate).toLocaleDateString("vi-VN")
+                  : "Chưa cập nhật"}
               </Descriptions.Item>
               <Descriptions.Item label="Giới tính">
                 {selectedEmployee.gender ? (
@@ -840,15 +912,13 @@ const EmployeePage: React.FC = () => {
               </Descriptions.Item>
               <Descriptions.Item label="Ngày sinh">
                 {selectedEmployee.dateOfBirth
-                  ? new Date(selectedEmployee.dateOfBirth).toLocaleDateString(
-                      "vi-VN"
-                    )
+                  ? new Date(selectedEmployee.dateOfBirth).toLocaleDateString("vi-VN")
                   : "Chưa cập nhật"}
               </Descriptions.Item>
               <Descriptions.Item label="Ngày tạo">
-                {new Date(selectedEmployee.createdAt).toLocaleDateString(
-                  "vi-VN"
-                )}
+                {selectedEmployee.createdAt 
+                  ? new Date(selectedEmployee.createdAt).toLocaleDateString("vi-VN")
+                  : "Chưa cập nhật"}
               </Descriptions.Item>
               <Descriptions.Item label="Địa chỉ" span={2}>
                 {selectedEmployee.address || "Chưa cập nhật"}

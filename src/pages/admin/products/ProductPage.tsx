@@ -28,7 +28,8 @@ import {
   PoweroffOutlined,
   ShoppingOutlined
 } from '@ant-design/icons';
-import type { ColumnsType, MenuProps } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
 import { _request } from '../../../network/Api';
 
 const { Search, TextArea } = Input;
@@ -40,39 +41,60 @@ interface Product {
   name: string;
   description: string;
   price: number;
+  costPrice?: number;
   stockQuantity: number;
-  ageMonths: number | null;
-  breed: string | null;
-  color: string | null;
-  gender: string | null;
-  healthStatus: string | null;
-  vaccinationStatus: string | null;
-  certificateInfo: string | null;
-  weight: number | null;
+  minStockLevel?: number;
+  sku?: string;
+  barcode?: string;
+  weight?: number;
+  brand?: string;
+  originCountry?: string;
+  expiryDate?: string;
   imageUrl: string;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
   categoryId: number;
   categoryName: string;
-  barcode?: string;
-  barcodeType?: string;
-  sku?: string;
-  isPet?: boolean;
+  stockStatus?: string;
 }
 
 interface ProductFormData {
   name: string;
   description: string;
   price: number;
+  costPrice?: number;
   stockQuantity: number;
+  minStockLevel?: number;
+  sku?: string;
+  barcode?: string;
+  weight?: number;
+  brand?: string;
+  originCountry?: string;
+  expiryDate?: string;
   imageUrl: string;
   categoryId: number;
   isActive: boolean;
-  isPet: boolean;
-  barcode: string;
-  barcodeType: string;
-  sku: string;
+}
+
+interface ApiResponse<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+interface PaginationResponse<T> {
+  content: T[];
+  pageable: any;
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+  sort: any;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+  empty: boolean;
 }
 
 interface Category {
@@ -87,7 +109,9 @@ const ProductPage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend'>('ascend');
-  const [allProductsData, setAllProductsData] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -97,26 +121,51 @@ const ProductPage: React.FC = () => {
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [showCompact, setShowCompact] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
-const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-
-  const loadProducts =  () => {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const loadProducts = async (page?: number, search?: string, status?: string, categoryId?: string, sort?: string) => {
     setLoading(true);
     try {
-       _request({
-        path: "/admin/products/non-pets",
+      const currentPageIndex = (page || currentPage) - 1;
+      const params = new URLSearchParams({
+        page: currentPageIndex.toString(),
+        size: pageSize.toString(),
+      });
+
+      if (search) {
+        params.append('name', search);
+      }
+      if (status) {
+        params.append('isActive', status === 'active' ? 'true' : 'false');
+      }
+      if (categoryId) {
+        params.append('categoryId', categoryId);
+      }
+      if (sort) {
+        params.append('sort', sort);
+      }
+
+      const endpoint = search || status || categoryId ? '/products/search' : '/products';
+      
+      await _request({
+        path: `${endpoint}?${params.toString()}`,
         method: "GET",
-        onSuccess(data) {
-          const productsWithKeys = data.data.map((product: any) => ({
+        onSuccess(response) {
+          const data = response.data;
+          const productsWithKeys = data.content.map((product: any) => ({
             ...product,
             key: product.id.toString()
           }));
-          setAllProductsData(productsWithKeys);
+          setProducts(productsWithKeys);
+          setTotalElements(data.totalElements);
+          setTotalPages(data.totalPages);
         },
         onError(error) {
           message.error('Không thể tải danh sách sản phẩm');
           console.error(error);
         },
       });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi tải sản phẩm');
     } finally {
       setLoading(false);
     }
@@ -124,7 +173,7 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const loadCategories = async () => {
     try {
       await _request({
-        path: "/categories",
+        path: "/categories/all",
         method: "GET",
         onSuccess(data) {
           setCategories(data.data || []);
@@ -137,97 +186,47 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
       console.error('Có lỗi xảy ra khi tải danh mục');
     }
   };
-
   useEffect(() => {
     loadProducts();
     loadCategories();
   }, []);
 
-  // Filter and sort data
-  const filteredData = useMemo(() => {
-    let filtered = allProductsData;
+  useEffect(() => {
+    const sortParam = sortField && sortOrder ? `${sortField},${sortOrder === 'ascend' ? 'asc' : 'desc'}` : undefined;
+    loadProducts(currentPage, searchText, filterStatus, filterCategory, sortParam);
+  }, [currentPage, pageSize, searchText, filterStatus, filterCategory, sortField, sortOrder]);
+  const currentPageData = products;
 
-    // Search filter
-    if (searchText) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchText.toLowerCase()) ||
-        product.categoryName.toLowerCase().includes(searchText.toLowerCase()) ||
-        (product.sku && product.sku.toLowerCase().includes(searchText.toLowerCase())) ||
-        (product.barcode && product.barcode.toLowerCase().includes(searchText.toLowerCase()))
-      );
-    }
-
-    if (filterStatus) {
-      const isActive = filterStatus === 'active';
-      filtered = filtered.filter(product => product.isActive === isActive);
-    }
-
-    if (filterCategory) {
-      filtered = filtered.filter(product => product.categoryId.toString() === filterCategory);
-    }
-
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-        
-        if (sortField === 'createdAt' || sortField === 'updatedAt') {
-          aValue = new Date(a[sortField as keyof Product] as string).getTime();
-          bValue = new Date(b[sortField as keyof Product] as string).getTime();
-        } else if (sortField === 'price' || sortField === 'stockQuantity') {
-          aValue = a[sortField as keyof Product] as number;
-          bValue = b[sortField as keyof Product] as number;
-        } else {
-          aValue = a[sortField as keyof Product];
-          bValue = b[sortField as keyof Product];
-        }
-
-        if (sortOrder === 'ascend') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-
-    return filtered;
-  }, [allProductsData, searchText, sortField, sortOrder, filterStatus, filterCategory]);
-
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
-
+  const totalItems = totalElements;
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     form.setFieldsValue({
       name: product.name,
       description: product.description,
       price: product.price,
+      costPrice: product.costPrice,
       stockQuantity: product.stockQuantity,
+      minStockLevel: product.minStockLevel,
+      sku: product.sku,
+      barcode: product.barcode,
+      weight: product.weight,
+      brand: product.brand,
+      originCountry: product.originCountry,
+      expiryDate: product.expiryDate,
       imageUrl: product.imageUrl,
       categoryId: product.categoryId,
       isActive: product.isActive,
-      isPet: product.isPet || false,
-      barcode: product.barcode || '',
-      barcodeType: product.barcodeType || '',
-      sku: product.sku || ''
     });
     setIsModalVisible(true);
   };
-
   const handleHardDelete = async (productId: number) => {
     try {
       await _request({
-        path: `/admin/products/${productId}/hard`,
+        path: `/products/${productId}`,
         method: "DELETE",
         onSuccess() {
-          message.success('Xóa vĩnh viễn sản phẩm thành công');
-          loadProducts();
+          message.success('Xóa sản phẩm thành công');
+          loadProducts(currentPage, searchText, filterStatus, filterCategory);
         },
         onError(error) {
           message.error('Không thể xóa sản phẩm');
@@ -238,15 +237,14 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
       message.error('Có lỗi xảy ra khi xóa sản phẩm');
     }
   };
-
   const handleToggleStatus = async (productId: number) => {
     try {
       await _request({
         path: `/products/${productId}/toggle-status`,
         method: "PUT",
-        onSuccess(data) {
+        onSuccess() {
           message.success('Cập nhật trạng thái sản phẩm thành công');
-          loadProducts();
+          loadProducts(currentPage, searchText, filterStatus, filterCategory);
         },
         onError(error) {
           message.error('Không thể cập nhật trạng thái sản phẩm');
@@ -262,7 +260,6 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   setSelectedProduct(product);
   setIsViewModalVisible(true);
 };
-
   const getActionItems = (product: Product): MenuProps['items'] => [
     {
       key: 'edit',
@@ -290,59 +287,64 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
       icon: <EyeOutlined />,
       onClick: () => handleViewDetails(product),
     },
-    {
-      key: 'delete',
-      label: 'Xóa vĩnh viễn',
-      icon: <DeleteOutlined />,
-      danger: true,
-      onClick: () => {
-        Modal.confirm({
-          title: 'Xác nhận xóa vĩnh viễn',
-          content: (
-            <div>
-              <p>Bạn có chắc chắn muốn xóa vĩnh viễn sản phẩm "{product.name}"?</p>
-              <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
-                ⚠️ Hành động này không thể hoàn tác!
-              </p>
-            </div>
-          ),
-          okText: 'Xóa vĩnh viễn',
-          cancelText: 'Hủy',
-          okType: 'danger',
-          onOk: () => handleHardDelete(product.id),
-        });
-      },
-    },
+    // {
+    //   key: 'delete',
+    //   label: 'Xóa',
+    //   icon: <DeleteOutlined />,
+    //   danger: true,
+    //   onClick: () => {
+    //     Modal.confirm({
+    //       title: 'Xác nhận xóa',
+    //       content: (
+    //         <div>
+    //           <p>Bạn có chắc chắn muốn xóa sản phẩm "{product.name}"?</p>
+    //           <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
+    //             ⚠️ Sản phẩm sẽ bị vô hiệu hóa thay vì xóa hoàn toàn!
+    //           </p>
+    //         </div>
+    //       ),
+    //       okText: 'Xóa',
+    //       cancelText: 'Hủy',
+    //       okType: 'danger',
+    //       onOk: () => handleHardDelete(product.id),
+    //     });
+    //   },
+    // },
   ];
-
   const handleSubmit = async (values: ProductFormData) => {
     try {
       const isEdit = !!editingProduct;
-      const path = isEdit ? `/admin/products/${editingProduct.id}` : '/admin/products';
+      const path = isEdit ? `/products/${editingProduct.id}` : '/products';
       const method = isEdit ? 'PUT' : 'POST';
+
+      const payload = {
+        name: values.name,
+        description: values.description,
+        price: values.price,
+        costPrice: values.costPrice,
+        stockQuantity: values.stockQuantity,
+        minStockLevel: values.minStockLevel,
+        sku: values.sku,
+        barcode: values.barcode,
+        weight: values.weight,
+        brand: values.brand,
+        originCountry: values.originCountry,
+        expiryDate: values.expiryDate,
+        imageUrl: values.imageUrl,
+        categoryId: values.categoryId,
+        isActive: values.isActive,
+      };
 
       await _request({
         path,
         method,
-        body: {
-          name: values.name,
-          description: values.description,
-          price: values.price,
-          stockQuantity: values.stockQuantity,
-          imageUrl: values.imageUrl,
-          categoryId: values.categoryId,
-          isActive: values.isActive,
-          isPet: values.isPet,
-          barcode: values.barcode,
-          barcodeType: values.barcodeType || "",
-          sku: values.sku,
-        },
+        body: payload,
         onSuccess() {
           message.success(isEdit ? 'Cập nhật sản phẩm thành công' : 'Thêm sản phẩm thành công');
           setIsModalVisible(false);
           form.resetFields();
           setEditingProduct(null);
-          loadProducts();
+          loadProducts(currentPage, searchText, filterStatus, filterCategory);
         },
         onError(error) {
           message.error(isEdit ? 'Không thể cập nhật sản phẩm' : 'Không thể thêm sản phẩm');
@@ -353,29 +355,27 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
       message.error('Có lỗi xảy ra');
     }
   };
-
   const handleBulkDelete = async () => {
     if (selectedRowKeys.length === 0) return;
 
     Modal.confirm({
-      title: 'Xác nhận xóa vĩnh viễn',
+      title: 'Xác nhận xóa sản phẩm',
       content: (
         <div>
-          <p>Bạn có chắc chắn muốn xóa vĩnh viễn {selectedRowKeys.length} sản phẩm đã chọn?</p>
+          <p>Bạn có chắc chắn muốn xóa {selectedRowKeys.length} sản phẩm đã chọn?</p>
           <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
-            ⚠️ Hành động này không thể hoàn tác!
+            ⚠️ Sản phẩm sẽ bị vô hiệu hóa thay vì xóa hoàn toàn!
           </p>
         </div>
       ),
-      okText: 'Xóa vĩnh viễn',
+      okText: 'Xóa',
       cancelText: 'Hủy',
       okType: 'danger',
       onOk: async () => {
         try {
-          // Delete products one by one using hard delete endpoint
           for (const key of selectedRowKeys) {
             await _request({
-              path: `/admin/products/${key}/hard`,
+              path: `/products/${key}`,
               method: "DELETE",
               onSuccess() {},
               onError(error) {
@@ -383,17 +383,16 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
               },
             });
           }
-          message.success('Xóa vĩnh viễn các sản phẩm thành công');
+          message.success('Xóa các sản phẩm thành công');
           setSelectedRowKeys([]);
-          loadProducts();
+          loadProducts(currentPage, searchText, filterStatus, filterCategory);
         } catch (error) {
           message.error('Có lỗi xảy ra khi xóa sản phẩm');
         }
       },
     });
   };
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
       setSortOrder(sorter.order);
@@ -424,16 +423,19 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
       width: showCompact ? '40%' : '35%',
       render: (_, record) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar 
-            size={showCompact ? 32 : 40} 
-            src={record.imageUrl}
+          <Image 
+            preview={false}
+            width={showCompact ? 32 : 50} 
+            height={showCompact ? 32 : 50}
+            src={`/img/${record.imageUrl}`}
             style={{ 
               backgroundColor: '#f0f8ff',
-              fontSize: showCompact ? '14px' : '18px'
+              fontSize: showCompact ? '14px' : '18px',
+              objectFit: 'cover',
             }}
           >
-            <ShoppingOutlined />
-          </Avatar>
+            {/* <ShoppingOutlined /> */}
+          </Image>
           <div>
             <div style={{ 
               fontWeight: 500, 
@@ -554,7 +556,6 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     selectedRowKeys,
     onChange: onSelectChange,
   };
-
   const handleSearch = (value: string) => {
     setSearchText(value);
     setCurrentPage(1);
@@ -678,7 +679,7 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
               }}
             >
               <option value="">Tất cả danh mục</option>
-              {categories.map(category => (
+              {categories?.map(category => (
                 <option key={category.id} value={category.id.toString()}>
                   {category.name}
                 </option>
@@ -878,7 +879,7 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
             rules={[{ required: true, message: 'Vui lòng chọn danh mục' }]}
           >
             <Select placeholder="Chọn danh mục">
-              {categories.map(category => (
+              {categories?.map(category => (
                 <Option key={category.id} value={category.id}>
                   {category.name}
                 </Option>
@@ -992,13 +993,12 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
             <Image
               width={200}
               height={200}
-              src={selectedProduct.imageUrl}
+              src={`/img/${selectedProduct.imageUrl}`}
               alt={selectedProduct.name}
               style={{ borderRadius: "8px", objectFit: "cover" }}
             />
           )}
-        </div>
-        <div style={{ flex: 2 }}>
+        </div>        <div style={{ flex: 2 }}>
           <Descriptions column={1} size="small">
             <Descriptions.Item label="Tên sản phẩm">
               {selectedProduct.name}
@@ -1012,11 +1012,14 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
             <Descriptions.Item label="Mã vạch">
               {selectedProduct.barcode || 'Chưa có'}
             </Descriptions.Item>
-            <Descriptions.Item label="Loại mã vạch">
-              {selectedProduct.barcodeType || 'Chưa có'}
+            <Descriptions.Item label="Thương hiệu">
+              {selectedProduct.brand || 'Chưa có'}
             </Descriptions.Item>
-            <Descriptions.Item label="Giá">
+            <Descriptions.Item label="Giá bán">
               {formatPrice(selectedProduct.price)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Giá nhập">
+              {selectedProduct.costPrice ? formatPrice(selectedProduct.costPrice) : 'Chưa có'}
             </Descriptions.Item>
           </Descriptions>
         </div>
@@ -1030,6 +1033,9 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
         <Descriptions.Item label="Số lượng tồn kho">
           {selectedProduct.stockQuantity}
         </Descriptions.Item>
+        <Descriptions.Item label="Mức tồn kho tối thiểu">
+          {selectedProduct.minStockLevel || 'Chưa đặt'}
+        </Descriptions.Item>
         <Descriptions.Item label="Trạng thái kho">
           <Tag color={selectedProduct.stockQuantity > 0 ? "green" : "red"}>
             {selectedProduct.stockQuantity > 0 ? "Còn hàng" : "Hết hàng"}
@@ -1040,10 +1046,14 @@ const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
             {selectedProduct.isActive ? "Hoạt động" : "Tạm dừng"}
           </Tag>
         </Descriptions.Item>
-        <Descriptions.Item label="Loại sản phẩm">
-          <Tag color={selectedProduct.isPet ? "blue" : "green"}>
-            {selectedProduct.isPet ? "Thú cưng" : "Sản phẩm"}
-          </Tag>
+        <Descriptions.Item label="Khối lượng">
+          {selectedProduct.weight ? `${selectedProduct.weight} kg` : 'Chưa có'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Xuất xứ">
+          {selectedProduct.originCountry || 'Chưa có'}
+        </Descriptions.Item>
+        <Descriptions.Item label="Hạn sử dụng">
+          {selectedProduct.expiryDate ? formatDate(selectedProduct.expiryDate) : 'Chưa có'}
         </Descriptions.Item>
         <Descriptions.Item label="Ngày tạo">
           {formatDate(selectedProduct.createdAt)}

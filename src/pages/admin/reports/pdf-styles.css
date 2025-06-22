@@ -1,0 +1,13 @@
+/**
+ * Tùy chỉnh cho jspdf-autotable
+ */
+
+.jspdf-autotable {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+@media print {
+  .pdf-hide-on-print {
+    display: none !important;
+  }
+}

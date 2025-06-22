@@ -49,17 +49,17 @@ const AdminAuthPage: React.FC = () => {
     setLoading(true);
     try {
       _request({
-        path: "/auth/login/admin",
+        path: "/auth/login",
         method: "POST",
         body: {
-          usernameOrEmail: values.email,
+          username: values.email,
           password: values.password,
         },
         onSuccess(data) {
           localStorage.setItem("accessToken", data.data.token);
 
           message.success("Đăng nhập thành công!");
-          _router.openDashboard()
+          _router.openAny("/admin/pets/categories");
         },
         onError(error) {
           message.error("Email hoặc mật khẩu không đúng!");
@@ -75,10 +75,8 @@ const AdminAuthPage: React.FC = () => {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
-      // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // Demo registration success
       message.success(
         "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản."
       );

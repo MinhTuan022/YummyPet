@@ -7,7 +7,6 @@ import {
   Dropdown,
   Avatar,
   Checkbox,
-  Space,
   Select,
   MenuProps,
   Modal,
@@ -15,66 +14,80 @@ import {
   message,
   Descriptions,
   Switch,
+  Tooltip,
 } from "antd";
 import {
   SearchOutlined,
-  FilterOutlined,
   MoreOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
   PlusOutlined,
   FolderOutlined,
+  FolderOpenOutlined,
+  NodeIndexOutlined,
+  ApartmentOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import "./CategoryPage.scss";
 import { _request } from "../../../network/Api";
 import { formatDate } from "../../../utils";
+import { CategoryType } from "../../../network/Type";
 
 const { Search } = Input;
 const { Option } = Select;
 const { TextArea } = Input;
 
-interface CategoryType {
-  id: number;
-  name: string;
-  description: string;
-  isActive: boolean;
-  createdAt: string;
-  productCount: number | null;
-}
-
 const CategoryPage: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
   const [searchText, setSearchText] = useState("");
-  const [sortField, setSortField] = useState<string>("");
-  const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("ascend");
-  const [allCategoriesData, setAllCategoriesData] = useState<CategoryType[]>([]);
+  const [sortField, setSortField] = useState<string>("createdAt");  const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("descend");
+  
+  // Data states
+  const [categoriesData, setCategoriesData] = useState<CategoryType[]>([]);
+  const [allCategories, setAllCategories] = useState<CategoryType[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   // Modal states
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null);
-  const [editForm] = Form.useForm();
+  const [selectedCategory, setSelectedCategory] = useState<CategoryType | null>(null);  const [editForm] = Form.useForm();
   const [createForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [selectedCategoryType, setSelectedCategoryType] = useState<string>("product");
 
   useEffect(() => {
     fetchCategories();
-  }, []);
+    fetchAllCategories();
+  }, [currentPage, pageSize, sortField, sortOrder]);
 
   const fetchCategories = () => {
     setLoading(true);
+    
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', currentPage.toString());
+    queryParams.append('size', pageSize.toString());
+    
+    if (sortField) {
+      const sortParam = `${sortField},${sortOrder === 'ascend' ? 'asc' : 'desc'}`;
+      queryParams.append('sort', sortParam);
+    }
+    
+    const pathWithParams = `/categories?${queryParams.toString()}`;
+    
     _request({
-      path: "/categories",
+      path: pathWithParams,
       method: "GET",
       onSuccess(response) {
         console.log(response);
         if (response.success && response.data) {
-          setAllCategoriesData(response.data);
+          setCategoriesData(response.data.content || []);
+          setTotalElements(response.data.totalElements || 0);
+          setTotalPages(response.data.totalPages || 0);
         }
         setLoading(false);
       },
@@ -86,11 +99,26 @@ const CategoryPage: React.FC = () => {
     });
   };
 
-  const handleEdit = (record: CategoryType) => {
+  const fetchAllCategories = () => {
+    _request({
+      path: "/categories/all",
+      method: "GET",
+      onSuccess(response) {
+        if (response.success && response.data) {
+          setAllCategories(response.data);
+        }
+      },
+      onError(error) {
+        console.log(error);
+      },
+    });
+  };  const handleEdit = (record: CategoryType) => {
     setSelectedCategory(record);
     editForm.setFieldsValue({
       name: record.name,
       description: record.description,
+      parentId: record.parentId,
+      categoryType: record.categoryType,
       isActive: record.isActive,
     });
     setIsEditModalVisible(true);
@@ -104,7 +132,7 @@ const CategoryPage: React.FC = () => {
       onSuccess(response) {
         if (response.success) {
           message.success("Category deleted successfully");
-          fetchCategories(); // Refresh data
+          fetchCategories();
         }
         setLoading(false);
       },
@@ -119,33 +147,44 @@ const CategoryPage: React.FC = () => {
   const handleView = (record: CategoryType) => {
     setSelectedCategory(record);
     setIsViewModalVisible(true);
-  };
-
-  const handleCreate = () => {
+  };  const handleCreate = () => {
     createForm.resetFields();
     setIsCreateModalVisible(true);
-  };
-
-  const handleCreateSubmit = async () => {
+  };  const handleCreateSubmit = async () => {
     try {
       const values = await createForm.validateFields();
+      
+      // Validate parent-child category type consistency
+      if (values.parentId) {
+        const parentCategory = allCategories.find(cat => cat.id === values.parentId);
+        if (parentCategory && parentCategory.categoryType !== values.categoryType) {
+          message.error("Loại danh mục con phải trùng với loại danh mục cha!");
+          return;
+        }
+      }
+      
       setLoading(true);
 
       _request({
         path: "/categories",
         method: "POST",
-        body: values,
+        body: {
+          ...values,
+          categoryType: values.categoryType || "product",
+        },
         onSuccess(response) {
           if (response.success) {
-            message.success("Category created successfully");
+            message.success("Tạo danh mục thành công!");
             setIsCreateModalVisible(false);
-            fetchCategories(); // Refresh data
+            fetchCategories();
+            fetchAllCategories();
+            createForm.resetFields();
           }
           setLoading(false);
         },
         onError(error) {
           console.log(error, "Failed to create category", values);
-          message.error("Failed to create category");
+          message.error(error?.message || "Không thể tạo danh mục");
           setLoading(false);
         },
       });
@@ -157,6 +196,16 @@ const CategoryPage: React.FC = () => {
   const handleEditSubmit = async () => {
     try {
       const values = await editForm.validateFields();
+      
+      // Validate parent-child category type consistency
+      if (values.parentId) {
+        const parentCategory = allCategories.find(cat => cat.id === values.parentId);
+        if (parentCategory && parentCategory.categoryType !== values.categoryType) {
+          message.error("Loại danh mục con phải trùng với loại danh mục cha!");
+          return;
+        }
+      }
+      
       setLoading(true);
 
       _request({
@@ -165,21 +214,42 @@ const CategoryPage: React.FC = () => {
         body: values,
         onSuccess(response) {
           if (response.success) {
-            message.success("Category updated successfully");
+            message.success("Cập nhật danh mục thành công!");
             setIsEditModalVisible(false);
-            fetchCategories(); // Refresh data
+            fetchCategories();
+            fetchAllCategories();
           }
           setLoading(false);
         },
         onError(error) {
           console.log(error, "Failed to update category", values);
-          message.error("Failed to update category");
+          message.error(error?.message || "Không thể cập nhật danh mục");
           setLoading(false);
         },
       });
     } catch (error) {
       console.log("Validation failed:", error);
     }
+  };
+
+  const handleToggleStatus = (record: CategoryType) => {
+    setLoading(true);
+    _request({
+      path: `/categories/${record.id}/toggle-status`,
+      method: "PUT",
+      onSuccess(response) {
+        if (response.success) {
+          message.success(response.message);
+          fetchCategories();
+        }
+        setLoading(false);
+      },
+      onError(error) {
+        console.log(error);
+        message.error("Failed to toggle category status");
+        setLoading(false);
+      },
+    });
   };
 
   const handleBulkDelete = () => {
@@ -226,47 +296,11 @@ const CategoryPage: React.FC = () => {
   };
 
   const filteredData = useMemo(() => {
-    let filtered = allCategoriesData;
+    return categoriesData;
+  }, [categoriesData]);
 
-    if (searchText) {
-      filtered = filtered.filter(
-        (category) =>
-          category.name.toLowerCase().includes(searchText.toLowerCase()) ||
-          category.description.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue: any, bValue: any;
-
-        if (sortField === "date") {
-          aValue = new Date(a.createdAt).getTime();
-          bValue = new Date(b.createdAt).getTime();
-        } else {
-          aValue = a[sortField as keyof CategoryType];
-          bValue = b[sortField as keyof CategoryType];
-        }
-
-        if (sortOrder === "ascend") {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-
-    return filtered;
-  }, [allCategoriesData, searchText, sortField, sortOrder]);
-
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const currentPageData = filteredData;
+  const totalItems = totalElements;
 
   const getActionItems = (record: CategoryType): MenuProps["items"] => [
     {
@@ -298,67 +332,159 @@ const CategoryPage: React.FC = () => {
       },
     },
   ];
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
       setSortOrder(sorter.order);
     }
   };
-
-  const columns: ColumnsType<CategoryType> = [
-    {
-      title: "Thông tin danh mục",
-      dataIndex: "category",
-      render: (_, record) => (
-        <div className="category-info">
+  // Render category hierarchy indicator
+  const renderCategoryHierarchy = (record: CategoryType) => {
+    const isChild = record.parentId && record.parentName;
+    
+    return (
+      <div className="category-info">
+        {/* Hierarchy indicator at the top */}
+        <div className="category-hierarchy" style={{ marginBottom: 8 }}>
+          {isChild ? (
+            <div className="hierarchy-indicator" style={{ 
+              background: '#e6f7ff', 
+              padding: '4px 8px', 
+              borderRadius: '4px',
+              border: '1px solid #91d5ff'
+            }}>
+              <ApartmentOutlined style={{ color: '#1890ff', marginRight: 4 }} />
+              <span style={{ color: '#1890ff', fontSize: '12px', fontWeight: 500 }}>
+                {record.parentName}
+              </span>
+              <span style={{ color: '#666', margin: '0 4px' }}> → </span>
+              <span style={{ color: '#1890ff', fontSize: '12px' }}>
+                {record.name}
+              </span>
+            </div>
+          ) : (
+            <div className="root-indicator" style={{ 
+              background: '#f6ffed', 
+              padding: '4px 8px', 
+              borderRadius: '4px',
+              border: '1px solid #b7eb8f'
+            }}>
+              <FolderOpenOutlined style={{ color: '#52c41a', marginRight: 4 }} />
+              <span style={{ color: '#52c41a', fontSize: '12px', fontWeight: 500 }}>
+                Danh mục gốc
+              </span>
+            </div>
+          )}
+        </div>
+        
+        {/* Main category info */}
+        <div className="category-main-info" style={{ display: 'flex', alignItems: 'center' }}>
           <Avatar
             size={40}
-            className="category-avatar"
-            icon={<FolderOutlined />}
+            className={`category-avatar ${isChild ? 'child-category' : 'root-category'}`}
+            style={{
+              backgroundColor: isChild ? '#e6f7ff' : '#f6ffed',
+              color: isChild ? '#1890ff' : '#52c41a',
+              marginRight: 12
+            }}
+            icon={isChild ? <NodeIndexOutlined /> : <FolderOutlined />}
           >
             {record.name.charAt(0).toUpperCase()}
           </Avatar>
-          <div className="category-details">
-            <div className="category-name">{record.name}</div>
-            <div className="category-description">
-              {record.description || "No description"}
+          
+          <div className="category-details" style={{ flex: 1 }}>
+            <div className="category-name-section" style={{ marginBottom: 4 }}>
+              <span className={`category-name ${isChild ? 'child-name' : 'root-name'}`} style={{
+                fontWeight: 600,
+                fontSize: '14px',
+                color: isChild ? '#1890ff' : '#52c41a'
+              }}>
+                {record.name}
+              </span>
+              {isChild && (
+                <Tag 
+                  color="blue" 
+                  style={{ marginLeft: 8, fontSize: '10px' }}
+                  icon={<NodeIndexOutlined />}
+                >
+                  Danh mục con
+                </Tag>
+              )}
+            </div>
+            
+            <div className="category-description" style={{ 
+              color: '#666', 
+              fontSize: '12px',
+              marginBottom: 4
+            }}>
+              {record.description || "Không có mô tả"}
             </div>
           </div>
         </div>
+      </div>
+    );
+  };  const columns: ColumnsType<CategoryType> = [
+    {
+      title: "Cấu trúc danh mục",
+      dataIndex: "category",
+      width: "40%",
+      render: (_, record) => renderCategoryHierarchy(record),
+    },
+    {
+      title: "Loại danh mục",
+      dataIndex: "categoryType",
+      width: "15%",
+      render: (type: string) => (
+        <Tag 
+          color={type === "product" ? "green" : "orange"}
+          icon={type === "product" ? <FolderOutlined /> : "🐾"}
+        >
+          {type === "product" ? "Sản phẩm" : "Thú cưng"}
+        </Tag>
       ),
     },
     {
       title: "Ngày tạo",
       dataIndex: "createdAt",
+      width: "15%",
       sorter: true,
-      render: (date: string) => `${formatDate(date)}`,
-    },
-    {
-      title: "Số lượng sản phẩm",
-      dataIndex: "productCount",
-      render: (count: number | null) => (
-        <div>
-          <Tag color="blue" className="count-tag">
-            {count !== null ? `${count} products` : "0 products"}
-          </Tag>
-        </div>
+      render: (date: string) => (
+        <Tooltip title={`Created: ${formatDate(date)}`}>
+          <span>{formatDate(date)}</span>
+        </Tooltip>
       ),
     },
     {
-      title: "Trạng thái hoạt động",
+      title: "Ngày cập nhật",
+      dataIndex: "updatedAt",
+      width: "15%",
+      render: (date: string) => (
+        <span style={{ color: date ? '#000' : '#999' }}>
+          {date ? formatDate(date) : "Chưa cập nhật"}
+        </span>
+      ),
+    },
+    {
+      title: "Trạng thái",
       dataIndex: "isActive",
-      render: (isActive: boolean) => (
-        <div>
-          <Tag color={isActive ? "green" : "red"} className="status-tag">
+      width: "10%",
+      render: (isActive: boolean, record) => (
+        <Tooltip title="Click to toggle status">
+          <Tag 
+            color={isActive ? "success" : "error"} 
+            className="status-tag"
+            style={{ cursor: 'pointer' }}
+            onClick={() => handleToggleStatus(record)}
+          >
             {isActive ? "Hoạt động" : "Tạm dừng"}
           </Tag>
-        </div>
+        </Tooltip>
       ),
     },
     {
       title: "Hành động",
       dataIndex: "action",
+      width: "5%",
       render: (_, record) => (
         <Dropdown menu={{ items: getActionItems(record) }} trigger={["click"]}>
           <Button type="text" icon={<MoreOutlined />} />
@@ -379,55 +505,54 @@ const CategoryPage: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchText(value);
-    setCurrentPage(1);
+    setCurrentPage(0);
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1);
+    setCurrentPage(0);
   };
 
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
+    if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
 
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  const startItem = currentPage * pageSize + 1;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalItems);
 
   return (
     <div className="category-management">
       <div className="header">
         <div className="search-section">
           <Search
-            placeholder="Search categories by name or description"
+            placeholder="Tìm kiếm danh mục theo tên hoặc mô tả"
             prefix={<SearchOutlined />}
             style={{ width: 400 }}
             onSearch={handleSearch}
             onChange={(e) => handleSearch(e.target.value)}
             allowClear
           />
-          {/* <Button icon={<FilterOutlined />} className="filter-button">
-            Filter
-          </Button> */}
+          
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
             onClick={handleCreate}
             className="create-button"
           >
-            Add Category
+            Thêm danh mục
           </Button>
+          
           {selectedRowKeys.length > 0 && (
             <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
-              Delete Selected ({selectedRowKeys.length})
+              Xóa đã chọn ({selectedRowKeys.length})
             </Button>
           )}
         </div>
@@ -443,17 +568,18 @@ const CategoryPage: React.FC = () => {
           rowSelection={rowSelection}
           loading={loading}
           rowKey="id"
+          className="category-table"
         />
 
         <div className="pagination-container">
           <div className="pagination-info">
             {totalItems > 0
-              ? `${startItem}-${endItem} of ${totalItems}`
-              : "0 of 0"}
+              ? `${startItem}-${endItem} của ${totalItems}`
+              : "0 của 0"}
           </div>
           <div className="pagination-controls">
             <span style={{ marginRight: 8, color: "#8c8c8c" }}>
-              Rows per page:
+              Số dòng mỗi trang:
             </span>
             <Select
               value={pageSize}
@@ -465,19 +591,20 @@ const CategoryPage: React.FC = () => {
               <Option value={10}>10</Option>
               <Option value={20}>20</Option>
             </Select>
+            
             <Button
               type="text"
-              disabled={currentPage === 1}
+              disabled={currentPage === 0}
               onClick={goToPreviousPage}
             >
               ‹
             </Button>
             <span style={{ margin: "0 8px", color: "#8c8c8c" }}>
-              {currentPage} of {totalPages}
+              {currentPage + 1} của {totalPages}
             </span>
             <Button
               type="text"
-              disabled={currentPage === totalPages}
+              disabled={currentPage === totalPages - 1}
               onClick={goToNextPage}
             >
               ›
@@ -486,93 +613,175 @@ const CategoryPage: React.FC = () => {
         </div>
 
         <div className="dense-padding-section">
-          <Checkbox>Dense padding</Checkbox>
+          <Checkbox>Giảm khoảng cách</Checkbox>
         </div>
       </div>
 
       {/* Create Modal */}
       <Modal
-        title="Create New Category"
+        title="Tạo danh mục mới"
         open={isCreateModalVisible}
         onOk={handleCreateSubmit}
         onCancel={() => setIsCreateModalVisible(false)}
         width={600}
-        okText="Create Category"
+        okText="Tạo danh mục"
+        cancelText="Hủy"
         confirmLoading={loading}
       >
         <Form form={createForm} layout="vertical">
           <Form.Item
-            label="Category Name"
+            label="Tên danh mục"
             name="name"
-            rules={[{ required: true, message: "Please input category name!" }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên danh mục!" }]}
           >
-            <Input placeholder="Enter category name" />
-          </Form.Item>
-
-          <Form.Item
-            label="Description"
+            <Input placeholder="Nhập tên danh mục" />
+          </Form.Item>          <Form.Item
+            label="Mô tả"
             name="description"
-            rules={[{ required: true, message: "Please input description!" }]}
+            rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
           >
-            <TextArea rows={4} placeholder="Enter category description" />
+            <TextArea rows={4} placeholder="Nhập mô tả danh mục" />
+          </Form.Item>          <Form.Item
+            label="Loại danh mục"
+            name="categoryType"
+            initialValue="product"
+            rules={[{ required: true, message: "Vui lòng chọn loại danh mục!" }]}
+          >
+            <Select 
+              placeholder="Chọn loại danh mục"
+              onChange={(value) => {
+                setSelectedCategoryType(value);
+                // Reset parentId when category type changes
+                createForm.setFieldsValue({ parentId: undefined });
+              }}
+            >
+              <Option value="product">Sản phẩm</Option>
+              <Option value="pet">Thú cưng</Option>
+            </Select>
           </Form.Item>
 
           <Form.Item
-            label="Status"
+            label="Danh mục cha"
+            name="parentId"
+            help="Để trống nếu đây là danh mục gốc"
+          >
+            <Select 
+              placeholder="Chọn danh mục cha (tùy chọn)"
+              allowClear
+              showSearch
+              optionFilterProp="children"
+            >
+              {allCategories
+                .filter(category => category.categoryType === selectedCategoryType)
+                .map(category => (
+                <Option key={category.id} value={category.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{category.name}</span>
+                    <Tag 
+                      color={category.categoryType === 'product' ? 'green' : 'orange'}
+                      style={{ fontSize: '10px' }}
+                    >
+                      {category.categoryType === 'product' ? 'Sản phẩm' : 'Thú cưng'}
+                    </Tag>
+                  </div>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Trạng thái"
             name="isActive"
             valuePropName="checked"
             initialValue={true}
           >
-            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+            <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm dừng" />
           </Form.Item>
         </Form>
-      </Modal>
-
-      {/* Edit Modal */}
+      </Modal>      {/* Edit Modal */}
       <Modal
-        title={`Edit Category: ${selectedCategory?.name}`}
+        title={`Sửa danh mục: ${selectedCategory?.name}`}
         open={isEditModalVisible}
         onOk={handleEditSubmit}
         onCancel={() => setIsEditModalVisible(false)}
         width={600}
-        okText="Save Changes"
+        okText="Lưu thay đổi"
+        cancelText="Hủy"
         confirmLoading={loading}
       >
         <Form form={editForm} layout="vertical">
           <Form.Item
-            label="Category Name"
+            label="Tên danh mục"
             name="name"
-            rules={[{ required: true, message: "Please input category name!" }]}
+            rules={[{ required: true, message: "Vui lòng nhập tên danh mục!" }]}
           >
             <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="Description"
+          </Form.Item>          <Form.Item
+            label="Mô tả"
             name="description"
-            rules={[{ required: true, message: "Please input description!" }]}
+            rules={[{ required: true, message: "Vui lòng nhập mô tả!" }]}
           >
             <TextArea rows={4} />
           </Form.Item>
 
           <Form.Item
-            label="Status"
+            label="Loại danh mục"
+            name="categoryType"
+            rules={[{ required: true, message: "Vui lòng chọn loại danh mục!" }]}
+          >
+            <Select placeholder="Chọn loại danh mục">
+              <Option value="product">Sản phẩm</Option>
+              <Option value="pet">Thú cưng</Option>
+            </Select>
+          </Form.Item>          <Form.Item
+            label="Danh mục cha"
+            name="parentId"
+            help="Chọn danh mục cha hoặc để trống"
+          >
+            <Select 
+              placeholder="Chọn danh mục cha (tùy chọn)"
+              allowClear
+              showSearch
+            >
+              {allCategories
+                .filter(category => 
+                  category.id !== selectedCategory?.id && // Không cho phép chọn chính nó làm parent
+                  category.categoryType === editForm.getFieldValue('categoryType') // Chỉ hiển thị cùng loại
+                )
+                .map(category => (
+                <Option key={category.id} value={category.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{category.name}</span>
+                    <Tag 
+                      color={category.categoryType === 'product' ? 'green' : 'orange'}
+                      style={{ fontSize: '10px' }}
+                    >
+                      {category.categoryType === 'product' ? 'Sản phẩm' : 'Thú cưng'}
+                    </Tag>
+                  </div>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Trạng thái"
             name="isActive"
             valuePropName="checked"
           >
-            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+            <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm dừng" />
           </Form.Item>
         </Form>
       </Modal>
 
       {/* View Details Modal */}
       <Modal
-        title={`Category Details: ${selectedCategory?.name}`}
+        title={`Chi tiết danh mục: ${selectedCategory?.name}`}
         open={isViewModalVisible}
         onCancel={() => setIsViewModalVisible(false)}
         footer={[
           <Button key="close" onClick={() => setIsViewModalVisible(false)}>
-            Close
+            Đóng
           </Button>,
           <Button
             key="edit"
@@ -582,7 +791,7 @@ const CategoryPage: React.FC = () => {
               handleEdit(selectedCategory!);
             }}
           >
-            Edit Category
+            Sửa danh mục
           </Button>,
         ]}
         width={700}
@@ -590,10 +799,35 @@ const CategoryPage: React.FC = () => {
         {selectedCategory && (
           <div>
             <Descriptions column={1} size="middle">
-              <Descriptions.Item label="Category Name">
+              <Descriptions.Item label="Tên danh mục">
                 {selectedCategory.name}
+              </Descriptions.Item>              <Descriptions.Item label="Cấu trúc phân cấp">
+                {selectedCategory.parentId ? (
+                  <div>
+                    <Tag color="blue" icon={<ApartmentOutlined />}>
+                      {selectedCategory.parentName} → {selectedCategory.name}
+                    </Tag>
+                    <div style={{ marginTop: 4, fontSize: '12px', color: '#666' }}>
+                      Danh mục con của "{selectedCategory.parentName}"
+                    </div>
+                  </div>
+                ) : (
+                  <Tag color="green" icon={<FolderOpenOutlined />}>
+                    Danh mục gốc
+                  </Tag>
+                )}
               </Descriptions.Item>
-              <Descriptions.Item label="Description">
+              
+              <Descriptions.Item label="Loại danh mục">
+                <Tag 
+                  color={selectedCategory.categoryType === "product" ? "green" : "orange"}
+                  icon={selectedCategory.categoryType === "product" ? <FolderOutlined /> : "🐾"}
+                >
+                  {selectedCategory.categoryType === "product" ? "Sản phẩm" : "Thú cưng"}
+                </Tag>
+              </Descriptions.Item>
+
+              <Descriptions.Item label="Mô tả">
                 <div style={{
                   background: "#f5f5f5",
                   padding: "8px 12px",
@@ -603,21 +837,22 @@ const CategoryPage: React.FC = () => {
                   {selectedCategory.description}
                 </div>
               </Descriptions.Item>
-              <Descriptions.Item label="Status">
-                <Tag color={selectedCategory.isActive ? "green" : "red"}>
+
+              <Descriptions.Item label="Trạng thái">
+                <Tag color={selectedCategory.isActive ? "success" : "error"}>
                   {selectedCategory.isActive ? "Hoạt động" : "Tạm dừng"}
                 </Tag>
               </Descriptions.Item>
-              <Descriptions.Item label="Product Count">
-                <Tag color="blue">
-                  {selectedCategory.productCount !== null 
-                    ? `${selectedCategory.productCount} products` 
-                    : "0 products"}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Date Created">
+
+              <Descriptions.Item label="Ngày tạo">
                 {formatDate(selectedCategory.createdAt)}
               </Descriptions.Item>
+              
+              {selectedCategory.updatedAt && (
+                <Descriptions.Item label="Ngày cập nhật">
+                  {formatDate(selectedCategory.updatedAt)}
+                </Descriptions.Item>
+              )}
             </Descriptions>
           </div>
         )}
@@ -635,7 +870,7 @@ const CategoryPage: React.FC = () => {
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
           }}
         >
-          Selected: {selectedRowKeys.length} categories
+          Đã chọn: {selectedRowKeys.length} danh mục
         </div>
       )}
     </div>

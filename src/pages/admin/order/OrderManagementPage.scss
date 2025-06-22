@@ -1,0 +1,856 @@
+// .order-management-page {
+//   min-height: 100vh;
+//   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+//   padding: 24px;
+
+//   // Statistics Cards Section
+//   .statistics-section {
+//     margin-bottom: 24px;
+
+//     .ant-card {
+//       border-radius: 16px;
+//       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+//       border: 1px solid rgba(255, 255, 255, 0.8);
+//       backdrop-filter: blur(10px);
+//       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+//       overflow: hidden;
+//       position: relative;
+
+//       &::before {
+//         content: '';
+//         position: absolute;
+//         top: 0;
+//         left: 0;
+//         right: 0;
+//         bottom: 0;
+//         background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+//         opacity: 0;
+//         transition: opacity 0.3s ease;
+//         z-index: 0;
+//       }
+
+//       &:hover {
+//         transform: translateY(-4px);
+//         box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+
+//         &::before {
+//           opacity: 1;
+//         }
+//       }
+
+//       .ant-card-body {
+//         padding: 24px;
+//         position: relative;
+//         z-index: 1;
+//       }
+
+//       .ant-statistic {
+//         .ant-statistic-title {
+//           font-size: 14px;
+//           font-weight: 600;
+//           color: #64748b;
+//           margin-bottom: 8px;
+//         }
+
+//         .ant-statistic-content {
+//           .ant-statistic-content-value {
+//             font-size: 28px;
+//             font-weight: 700;
+//             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+//           }
+
+//           .ant-statistic-content-prefix {
+//             margin-right: 8px;
+//             font-size: 24px;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   // Main Content Card
+//   .main-content-card {
+//     .ant-card {
+//       border-radius: 20px;
+//       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+//       border: 1px solid rgba(255, 255, 255, 0.8);
+//       backdrop-filter: blur(10px);
+
+//       .ant-card-body {
+//         padding: 32px;
+//       }
+//     }
+
+//     // Tabs Styling
+//     .ant-tabs {
+//       .ant-tabs-tab {
+//         padding: 16px 24px;
+//         font-size: 16px;
+//         font-weight: 600;
+//         border-radius: 12px 12px 0 0;
+//         transition: all 0.3s ease;
+//         position: relative;
+//         overflow: hidden;
+
+//         &::before {
+//           content: '';
+//           position: absolute;
+//           bottom: 0;
+//           left: 50%;
+//           width: 0;
+//           height: 3px;
+//           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//           transform: translateX(-50%);
+//           transition: width 0.3s ease;
+//         }
+
+//         &:hover {
+//           background: rgba(102, 126, 234, 0.05);
+//         }
+
+//         &.ant-tabs-tab-active {
+//           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//           color: white;
+//           box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+
+//           &::before {
+//             width: 100%;
+//           }
+//         }
+//       }
+
+//       .ant-tabs-content-holder {
+//         padding-top: 24px;
+//       }
+//     }
+//   }
+
+//   // Filters Section
+//   .filters-section {
+//     margin-bottom: 24px;
+//     padding: 20px;
+//     background: rgba(255, 255, 255, 0.7);
+//     backdrop-filter: blur(10px);
+//     border-radius: 16px;
+//     border: 1px solid rgba(255, 255, 255, 0.8);
+//     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+//     .ant-input,
+//     .ant-select-selector,
+//     .ant-picker {
+//       border-radius: 12px;
+//       height: 44px;
+//       border: 2px solid #e8f0fe;
+//       transition: all 0.3s ease;
+
+//       &:hover,
+//       &:focus {
+//         border-color: #667eea;
+//         box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+//       }
+//     }
+
+//     .ant-btn {
+//       height: 44px;
+//       border-radius: 12px;
+//       font-weight: 600;
+//       transition: all 0.3s ease;
+
+//       &.ant-btn-primary {
+//         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//         border: none;
+//         box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+
+//         &:hover {
+//           background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+//           transform: translateY(-2px);
+//           box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+//         }
+//       }
+
+//       &:not(.ant-btn-primary) {
+//         background: white;
+//         border: 2px solid #e8f0fe;
+//         color: #667eea;
+
+//         &:hover {
+//           border-color: #667eea;
+//           color: #5a67d8;
+//           transform: translateY(-1px);
+//           box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+//         }
+//       }
+//     }
+//   }
+
+//   // Table Styling
+//   .orders-table,
+//   .returns-table {
+//     .ant-table {
+//       border-radius: 16px;
+//       overflow: hidden;
+//       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+
+//       .ant-table-thead > tr > th {
+//         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//         color: white;
+//         font-weight: 700;
+//         font-size: 14px;
+//         text-align: center;
+//         border: none;
+//         padding: 20px 16px;
+//         text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+
+//         &:first-child {
+//           border-top-left-radius: 16px;
+//         }
+
+//         &:last-child {
+//           border-top-right-radius: 16px;
+//         }
+//       }
+
+//       .ant-table-tbody {
+//         > tr {
+//           transition: all 0.3s ease;
+
+//           &:hover {
+//             background: rgba(102, 126, 234, 0.05);
+//             transform: scale(1.001);
+//           }
+
+//           > td {
+//             padding: 16px;
+//             border-bottom: 1px solid #f0f2f5;
+//             vertical-align: middle;
+
+//             .ant-tag {
+//               border-radius: 8px;
+//               font-weight: 600;
+//               padding: 4px 12px;
+//               border: none;
+//               box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+//             }
+//           }
+//         }
+//       }
+
+//       .ant-table-pagination {
+//         margin: 24px 0 0 0;
+        
+//         .ant-pagination-item {
+//           border-radius: 8px;
+//           border: 2px solid #e8f0fe;
+          
+//           &:hover,
+//           &.ant-pagination-item-active {
+//             border-color: #667eea;
+//             background: #667eea;
+            
+//             a {
+//               color: white;
+//             }
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   // Order Detail Styles
+//   .order-detail-modal {
+//     .ant-modal-content {
+//       border-radius: 20px;
+//       overflow: hidden;
+//       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+//     }
+
+//     .ant-modal-header {
+//       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//       border: none;
+//       padding: 24px 32px;
+
+//       .ant-modal-title {
+//         color: white;
+//         font-size: 20px;
+//         font-weight: 700;
+//         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+//       }
+//     }
+
+//     .ant-modal-body {
+//       padding: 32px;
+//     }
+
+//     .ant-descriptions {
+//       .ant-descriptions-item-label {
+//         font-weight: 600;
+//         color: #374151;
+//         background: rgba(102, 126, 234, 0.05);
+//       }
+
+//       .ant-descriptions-item-content {
+//         color: #1f2937;
+//       }
+//     }
+
+//     .ant-list {
+//       .ant-list-item {
+//         padding: 16px;
+//         border-radius: 12px;
+//         border: 1px solid #e8f0fe;
+//         margin-bottom: 12px;
+//         transition: all 0.3s ease;
+
+//         &:hover {
+//           border-color: #667eea;
+//           box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
+//           transform: translateY(-2px);
+//         }
+
+//         .ant-list-item-meta {
+//           .ant-list-item-meta-avatar {
+//             .ant-avatar {
+//               background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//               border: none;
+//               box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+//             }
+//           }
+
+//           .ant-list-item-meta-title {
+//             font-weight: 600;
+//             color: #1f2937;
+//           }
+
+//           .ant-list-item-meta-description {
+//             color: #6b7280;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   // Status and Payment Method Icons
+//   .status-tag {
+//     display: inline-flex;
+//     align-items: center;
+//     gap: 6px;
+//     padding: 6px 12px;
+//     border-radius: 8px;
+//     font-weight: 600;
+//     font-size: 12px;
+//     text-transform: uppercase;
+//     letter-spacing: 0.5px;
+//     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+//     &.pending {
+//       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+//       color: white;
+//     }
+
+//     &.confirmed {
+//       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+//       color: white;
+//     }
+
+//     &.processing {
+//       background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+//       color: white;
+//     }
+
+//     &.completed {
+//       background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+//       color: white;
+//     }
+
+//     &.cancelled {
+//       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+//       color: white;
+//     }
+//   }
+
+//   .payment-method {
+//     display: inline-flex;
+//     align-items: center;
+//     gap: 6px;
+//     font-size: 12px;
+//     color: #6b7280;
+//     font-weight: 500;
+
+//     .anticon {
+//       color: #667eea;
+//     }
+//   }
+
+//   // Customer Info Display
+//   .customer-info {
+//     .customer-name {
+//       font-weight: 600;
+//       color: #1f2937;
+//       margin-bottom: 4px;
+//     }
+
+//     .customer-contact {
+//       font-size: 12px;
+//       color: #6b7280;
+//     }
+//   }
+
+//   // Action Buttons
+//   .action-buttons {
+//     display: flex;
+//     gap: 8px;
+
+//     .ant-btn {
+//       border-radius: 8px;
+//       font-weight: 600;
+//       transition: all 0.3s ease;
+//       height: 36px;
+//       padding: 0 12px;
+
+//       &:hover {
+//         transform: translateY(-1px);
+//         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+//       }
+
+//       &.ant-btn-primary {
+//         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+//         border: none;
+//       }
+
+//       &.ant-btn-danger {
+//         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+//         border: none;
+//       }
+//     }
+
+//     .ant-dropdown-trigger {
+//       border: 2px solid #e8f0fe;
+//       color: #667eea;
+
+//       &:hover {
+//         border-color: #667eea;
+//         color: #5a67d8;
+//       }
+//     }
+//   }
+
+//   // Return Form Styling
+//   .return-form {
+//     .ant-form-item-label > label {
+//       font-weight: 600;
+//       color: #374151;
+//     }
+
+//     .ant-radio-group {
+//       .ant-radio-wrapper {
+//         padding: 12px 16px;
+//         border: 2px solid #e8f0fe;
+//         border-radius: 12px;
+//         margin-right: 16px;
+//         transition: all 0.3s ease;
+
+//         &:hover {
+//           border-color: #667eea;
+//           background: rgba(102, 126, 234, 0.05);
+//         }
+
+//         &.ant-radio-wrapper-checked {
+//           border-color: #667eea;
+//           background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+//         }
+//       }
+//     }
+
+//     .return-items {
+//       background: #f8fafc;
+//       border-radius: 12px;
+//       padding: 16px;
+//       border: 2px solid #e8f0fe;
+
+//       .return-item {
+//         display: flex;
+//         align-items: center;
+//         padding: 12px;
+//         background: white;
+//         border-radius: 8px;
+//         margin-bottom: 8px;
+//         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+//         &:last-child {
+//           margin-bottom: 0;
+//         }
+
+//         .item-info {
+//           font-weight: 500;
+//           color: #374151;
+//         }
+
+//         .ant-input-number,
+//         .ant-select {
+//           border-radius: 8px;
+//           border: 2px solid #e8f0fe;
+
+//           &:hover,
+//           &:focus {
+//             border-color: #667eea;
+//           }
+//         }
+//       }
+//     }
+//   }
+
+//   // Loading States
+//   .loading-overlay {
+//     position: absolute;
+//     top: 0;
+//     left: 0;
+//     right: 0;
+//     bottom: 0;
+//     background: rgba(255, 255, 255, 0.8);
+//     backdrop-filter: blur(4px);
+//     display: flex;
+//     align-items: center;
+//     justify-content: center;
+//     z-index: 10;
+//     border-radius: 16px;
+
+//     .ant-spin {
+//       .ant-spin-dot {
+//         i {
+//           background-color: #667eea;
+//         }
+//       }
+//     }
+//   }
+
+//   // Animations
+//   @keyframes slideInUp {
+//     from {
+//       opacity: 0;
+//       transform: translateY(30px);
+//     }
+//     to {
+//       opacity: 1;
+//       transform: translateY(0);
+//     }
+//   }
+
+//   @keyframes fadeInScale {
+//     from {
+//       opacity: 0;
+//       transform: scale(0.95);
+//     }
+//     to {
+//       opacity: 1;
+//       transform: scale(1);
+//     }
+//   }
+
+//   .slide-in-up {
+//     animation: slideInUp 0.4s ease;
+//   }
+
+//   .fade-in-scale {
+//     animation: fadeInScale 0.3s ease;
+//   }
+
+//   // Responsive Design
+//   @media (max-width: 1400px) {
+//     .statistics-section {
+//       .ant-col {
+//         margin-bottom: 16px;
+//       }
+//     }
+//   }
+
+//   @media (max-width: 1200px) {
+//     padding: 16px;
+
+//     .main-content-card {
+//       .ant-card-body {
+//         padding: 24px;
+//       }
+//     }
+
+//     .filters-section {
+//       padding: 16px;
+
+//       .ant-col {
+//         margin-bottom: 12px;
+//       }
+//     }
+//   }
+
+//   @media (max-width: 992px) {
+//     padding: 12px;
+
+//     .statistics-section {
+//       .ant-statistic {
+//         .ant-statistic-content-value {
+//           font-size: 24px;
+//         }
+//       }
+//     }
+
+//     .orders-table,
+//     .returns-table {
+//       .ant-table {
+//         .ant-table-thead > tr > th {
+//           padding: 16px 12px;
+//           font-size: 12px;
+//         }
+
+//         .ant-table-tbody > tr > td {
+//           padding: 12px;
+//         }
+//       }
+//     }
+
+//     .order-detail-modal {
+//       .ant-modal-body {
+//         padding: 20px;
+//       }
+//     }
+//   }
+
+//   @media (max-width: 768px) {
+//     padding: 8px;
+
+//     .statistics-section {
+//       .ant-card {
+//         margin-bottom: 12px;
+
+//         .ant-card-body {
+//           padding: 16px;
+//         }
+
+//         .ant-statistic {
+//           .ant-statistic-content-value {
+//             font-size: 20px;
+//           }
+
+//           .ant-statistic-content-prefix {
+//             font-size: 18px;
+//           }
+//         }
+//       }
+//     }
+
+//     .main-content-card {
+//       .ant-card-body {
+//         padding: 16px;
+//       }
+
+//       .ant-tabs {
+//         .ant-tabs-tab {
+//           padding: 12px 16px;
+//           font-size: 14px;
+//         }
+//       }
+//     }
+
+//     .filters-section {
+//       padding: 12px;
+
+//       .ant-input,
+//       .ant-select-selector,
+//       .ant-picker,
+//       .ant-btn {
+//         height: 40px;
+//       }
+//     }
+
+//     .action-buttons {
+//       flex-direction: column;
+//       gap: 4px;
+
+//       .ant-btn {
+//         width: 100%;
+//         height: 32px;
+//         font-size: 12px;
+//       }
+//     }
+//   }
+
+//   @media (max-width: 480px) {
+//     padding: 4px;
+
+//     .statistics-section {
+//       .ant-row {
+//         margin: 0 -4px;
+
+//         .ant-col {
+//           padding: 0 4px;
+//         }
+//       }
+//     }
+
+//     .orders-table,
+//     .returns-table {
+//       .ant-table {
+//         font-size: 12px;
+
+//         .ant-table-thead > tr > th {
+//           padding: 12px 8px;
+//           font-size: 11px;
+//         }
+
+//         .ant-table-tbody > tr > td {
+//           padding: 8px;
+//         }
+//       }
+//     }
+
+//     .order-detail-modal {
+//       .ant-modal-content {
+//         margin: 8px;
+//       }
+
+//       .ant-modal-body {
+//         padding: 16px;
+//       }
+//     }
+//   }
+// }
+
+// // Global table enhancements
+// .ant-table-wrapper {
+//   .ant-table-pagination {
+//     .ant-pagination-item,
+//     .ant-pagination-prev,
+//     .ant-pagination-next {
+//       border-radius: 8px;
+//       border: 2px solid #e8f0fe;
+//       font-weight: 600;
+
+//       &:hover {
+//         border-color: #667eea;
+//         color: #667eea;
+//       }
+
+//       &.ant-pagination-item-active {
+//         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//         border-color: #667eea;
+
+//         a {
+//           color: white;
+//         }
+//       }
+//     }
+
+//     .ant-pagination-options {
+//       .ant-select {
+//         .ant-select-selector {
+//           border-radius: 8px;
+//           border: 2px solid #e8f0fe;
+
+//           &:hover,
+//           &:focus {
+//             border-color: #667eea;
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+
+// // Enhanced Modal Styling
+// .ant-modal {
+//   &.order-detail-modal,
+//   &.return-detail-modal,
+//   &.status-update-modal,
+//   &.create-return-modal {
+//     .ant-modal-content {
+//       border-radius: 20px;
+//       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+//       border: 1px solid rgba(255, 255, 255, 0.8);
+//       backdrop-filter: blur(10px);
+//     }
+
+//     .ant-modal-header {
+//       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//       border: none;
+//       border-radius: 20px 20px 0 0;
+
+//       .ant-modal-title {
+//         color: white;
+//         font-weight: 700;
+//         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+//       }
+//     }
+
+//     .ant-modal-footer {
+//       border: none;
+//       padding: 20px 32px 32px;
+
+//       .ant-btn {
+//         height: 44px;
+//         border-radius: 12px;
+//         font-weight: 600;
+//         min-width: 100px;
+
+//         &.ant-btn-primary {
+//           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+//           border: none;
+//           box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+
+//           &:hover {
+//             background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+//             transform: translateY(-1px);
+//             box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+//           }
+//         }
+
+//         &:not(.ant-btn-primary) {
+//           background: white;
+//           border: 2px solid #e8f0fe;
+//           color: #667eea;
+
+//           &:hover {
+//             border-color: #667eea;
+//             color: #5a67d8;
+//             transform: translateY(-1px);
+//           }
+//         }
+//       }
+//     }
+//   }
+// }
+
+// Payment status styles
+.payment-status {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+  
+  .ant-tag {
+    margin-right: 0;
+    text-align: center;
+    
+    &.pending {
+      background-color: rgba(250, 173, 20, 0.1);
+      border-color: #faad14;
+      color: #d48806;
+    }
+    
+    &.paid {
+      background-color: rgba(82, 196, 26, 0.1);
+      border-color: #52c41a;
+      color: #389e0d;
+    }
+    
+    &.refunded {
+      background-color: rgba(245, 34, 45, 0.1);
+      border-color: #f5222d;
+      color: #cf1322;
+    }
+  }
+  
+  .confirm-payment-btn {
+    margin-top: 4px;
+    font-size: 12px;
+    height: 24px;
+    padding: 0 8px;
+  }
+}

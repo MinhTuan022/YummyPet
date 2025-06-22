@@ -1,4 +1,4 @@
-type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
 interface CallApiParams {
   path: string;

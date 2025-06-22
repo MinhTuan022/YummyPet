@@ -30,9 +30,10 @@ const AdminLayout = () => {
         case "/admin/customers":
           return "Tất cả khách hàng";
         case "/admin/services":
-          return "Tất cả dịch vụ";
-        case "/admin/orders":
+          return "Tất cả dịch vụ";        case "/admin/orders":
           return "Quản lý đơn hàng";
+        case "/admin/reports":
+          return "Báo cáo thống kê";
         default:
           return "Quản trị hệ thống";
       }

@@ -7,30 +7,20 @@ import {
   Statistic,
   Table,
   Tag,
-  Progress,
-  Avatar,
-  Badge,
-  Tabs,
-  DatePicker,
   Select,
   Button,
-  Space,
   Typography,
-  List,
-  Timeline,
-  Rate,
+  message,
+  Spin,
+  Empty,
 } from "antd";
 import {
   ShoppingCartOutlined,
   UserOutlined,
   HeartOutlined,
   DollarOutlined,
-  TrophyOutlined,
   RiseOutlined,
-  TeamOutlined,
-  GiftOutlined,
-  EnvironmentOutlined,
-  ClockCircleOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import {
   LineChart,
@@ -47,235 +37,383 @@ import {
   Bar,
 } from "recharts";
 import "./Dashboard.scss";
-const { Header, Content, Sider } = Layout;
-const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
+import { _request } from "../../../network/Api";
+
+const { Content } = Layout;
+const { Title } = Typography;
 const { Option } = Select;
 
-// Mock data based on the database schema
-const mockData = {
-  stats: {
-    totalRevenue: 125000,
-    totalOrders: 1234,
-    totalCustomers: 856,
-    totalPets: 342,
-    revenueGrowth: 12.5,
-    orderGrowth: 8.3,
-    customerGrowth: 15.2,
-    petGrowth: 6.8,
-  },
-  revenueChart: [
-    { month: "Jan", revenue: 15000, orders: 120 },
-    { month: "Feb", revenue: 18000, orders: 145 },
-    { month: "Mar", revenue: 22000, orders: 168 },
-    { month: "Apr", revenue: 19000, orders: 152 },
-    { month: "May", revenue: 25000, orders: 198 },
-    { month: "Jun", revenue: 26000, orders: 205 },
-  ],
-  petCategories: [
-    { name: "Dogs", value: 145, color: "#FF6B6B" },
-    { name: "Cats", value: 132, color: "#4ECDC4" },
-    { name: "Birds", value: 45, color: "#45B7D1" },
-    { name: "Fish", value: 20, color: "#96CEB4" },
-  ],
-  topProducts: [
-    {
-      id: 1,
-      name: "Premium Dog Food",
-      sales: 245,
-      revenue: 12250,
-      category: "Food",
-    },
-    {
-      id: 2,
-      name: "Cat Litter Box",
-      sales: 189,
-      revenue: 9450,
-      category: "Accessories",
-    },
-    {
-      id: 3,
-      name: "Bird Cage Deluxe",
-      sales: 67,
-      revenue: 6700,
-      category: "Housing",
-    },
-    {
-      id: 4,
-      name: "Fish Tank Filter",
-      sales: 123,
-      revenue: 6150,
-      category: "Equipment",
-    },
-    {
-      id: 5,
-      name: "Pet Grooming Kit",
-      sales: 89,
-      revenue: 4450,
-      category: "Grooming",
-    },
-  ],
-  recentOrders: [
-    {
-      id: 1,
-      customer: "Nguyễn Văn A",
-      pet: "Golden Retriever",
-      amount: 1250,
-      status: "completed",
-      date: "2024-06-07",
-    },
-    {
-      id: 2,
-      customer: "Trần Thị B",
-      pet: "Persian Cat",
-      amount: 980,
-      status: "processing",
-      date: "2024-06-07",
-    },
-    {
-      id: 3,
-      customer: "Lê Văn C",
-      pet: "Cockatiel",
-      amount: 650,
-      status: "pending",
-      date: "2024-06-06",
-    },
-    {
-      id: 4,
-      customer: "Phạm Thị D",
-      pet: "Goldfish",
-      amount: 120,
-      status: "completed",
-      date: "2024-06-06",
-    },
-    {
-      id: 5,
-      customer: "Hoàng Văn E",
-      pet: "Siberian Husky",
-      amount: 1500,
-      status: "completed",
-      date: "2024-06-05",
-    },
-  ],
-  topCustomers: [
-    {
-      id: 1,
-      name: "Nguyễn Thị Hoa",
-      totalSpent: 5400,
-      orders: 12,
-      loyaltyPoints: 540,
-    },
-    {
-      id: 2,
-      name: "Trần Văn Nam",
-      totalSpent: 4200,
-      orders: 8,
-      loyaltyPoints: 420,
-    },
-    {
-      id: 3,
-      name: "Lê Thị Mai",
-      totalSpent: 3800,
-      orders: 15,
-      loyaltyPoints: 380,
-    },
-    {
-      id: 4,
-      name: "Phạm Văn Đức",
-      totalSpent: 3200,
-      orders: 6,
-      loyaltyPoints: 320,
-    },
-  ],
-  services: [
-    { name: "Làm đẹp thú cưng", bookings: 89, revenue: 8900 },
-    { name: "Tắm rửa thú cưng", bookings: 45, revenue: 13500 },
-    { name: "Cắt tỉa", bookings: 23, revenue: 6900 },
-    { name: "Spa thú cưng", bookings: 34, revenue: 10200 },
-  ],
-  recentActivities: [
-    { time: "2 phút trước", action: "Đơn hàng mới #1234", type: "order" },
-    {
-      time: "15 phút trước",
-      action: "Khách hàng mới đăng ký",
-      type: "customer",
-    },
-    {
-      time: "30 phút trước",
-      action: "Dịch vụ grooming hoàn thành",
-      type: "service",
-    },
-    { time: "1 giờ trước", action: "Sản phẩm mới được thêm", type: "product" },
-  ],
-};
+interface SalesStatistics {
+  totalRevenue: number;
+  totalOrders: number;
+  monthlyRevenue: number;
+  monthlyOrders: number;
+  dailyRevenue: number;
+  dailyOrders: number;
+  averageOrderValue: number;
+  growthRate?: number;
+  conversionRate?: number;
+}
+
+interface CustomerStatistics {
+  totalCustomers: number;
+  newCustomersThisMonth: number;
+  activeCustomers: number;
+  loyalCustomers: number;
+  averageLoyaltyPoints: number;
+  totalLoyaltyPointsIssued: number;
+  totalLoyaltyPointsRedeemed: number;
+}
+
+interface TopProduct {
+  productId: number;
+  productName: string;
+  categoryName: string;
+  totalSold: number;
+  stockQuantity: number;
+  revenue: number;
+  profit: number;
+}
+
+interface Service {
+  serviceId: number;
+  serviceName: string;
+  totalBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  completionRate: number;
+  totalRevenue: number;
+}
+
+interface DashboardData {
+  salesStatistics: SalesStatistics;
+  customerStatistics: CustomerStatistics;
+  totalProducts: number;
+  totalServices: number;
+  totalEmployees: number;
+  todayRevenue: number;
+  todayOrders: number;
+  todayNewCustomers: number;
+  topSellingProduct: TopProduct;
+  mostBookedService: Service;
+}
+
+interface MonthlySalesData {
+  month: number;
+  monthName: string;
+  year: number;
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+}
+
+interface TopProductData {
+  productId: number;
+  productName: string;
+  categoryName: string;
+  totalSold: number;
+  stockQuantity: number;
+  revenue: number;
+  profit: number;
+}
+
+interface GrowthData {
+  revenueGrowthPercentage: number;
+  revenueGrowthAmount: number;
+  orderGrowthPercentage: number;
+  orderGrowthAmount: number;
+  customerGrowthPercentage: number;
+  customerGrowthAmount: number;
+  currentMonthRevenue: number;
+  previousMonthRevenue: number;
+  currentMonthOrders: number;
+  previousMonthOrders: number;
+  currentMonthCustomers: number;
+  previousMonthCustomers: number;
+}
+
+interface PetCategory {
+  name: string;
+  value: number;
+  color: string;
+}
 
 const Dashboard: React.FC = () => {
-  const [selectedDateRange, setSelectedDateRange] = useState<any>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(
+    null
+  );
+  const [monthlySalesData, setMonthlySalesData] = useState<MonthlySalesData[]>(
+    []
+  );
+  const [topSellingProducts, setTopSellingProducts] = useState<
+    TopProductData[]
+  >([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [growthData, setGrowthData] = useState<GrowthData | null>(null);
+  const [petCategories, setPetCategories] = useState<PetCategory[]>([]);
 
-  const orderColumns = [
-    {
-      title: "Đơn hàng",
-      dataIndex: "id",
-      key: "id",
-      render: (id: number) => `#${id.toString().padStart(4, "0")}`,
-    },
-    {
-      title: "Khách hàng",
-      dataIndex: "customer",
-      key: "customer",
-    },
-    {
-      title: "Thú cưng",
-      dataIndex: "pet",
-      key: "pet",
-    },
-    {
-      title: "Giá trị",
-      dataIndex: "amount",
-      key: "amount",
-      render: (amount: number) => `${amount.toLocaleString("vi-VN")}đ`,
-    },
-    {
-      title: "Trạng thái",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
-        const colors = {
-          completed: "green",
-          processing: "blue",
-          pending: "orange",
-        };
-        const labels = {
-          completed: "Hoàn thành",
-          processing: "Đang xử lý",
-          pending: "Chờ xử lý",
-        };
-        return (
-          <Tag color={colors[status as keyof typeof colors]}>
-            {labels[status as keyof typeof labels]}
-          </Tag>
-        );
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear()
+  );
+  const [error, setError] = useState<string | null>(null);
+  const fetchDashboardData = () => {
+    setLoading(true);
+    _request({
+      path: "/statistics/dashboard",
+      method: "GET",
+      onSuccess: (response) => {
+        if (response.success) {
+          setDashboardData(response.data);
+        } else {
+          message.error(response.message || "Lỗi khi tải dữ liệu dashboard");
+          setError("Không thể tải dữ liệu dashboard");
+        }
+        setLoading(false);
       },
-    },
-  ];
+      onError: () => {
+        message.error("Lỗi khi tải dữ liệu dashboard");
+        setError("Không thể kết nối với API");
+        setLoading(false);
+      },
+    });
+  };
+  const fetchMonthlySales = (year: number) => {
+    _request({
+      path: `/statistics/sales/monthly?year=${year}`,
+      method: "GET",
+      onSuccess: (response) => {
+        if (response.success) {
+          setMonthlySalesData(response.data);
+        } else {
+          message.error(
+            response.message || "Lỗi khi tải dữ liệu doanh thu hàng tháng"
+          );
+        }
+      },
+      onError: () => {
+        message.error("Lỗi khi tải dữ liệu doanh thu hàng tháng");
+      },
+    });
+  };
+  const fetchTopSellingProducts = (limit: number = 10) => {
+    _request({
+      path: `/statistics/products/top-selling?limit=${limit}`,
+      method: "GET",
+      onSuccess: (response) => {
+        if (response.success) {
+          setTopSellingProducts(response.data);
+        } else {
+          message.error(
+            response.message || "Lỗi khi tải dữ liệu sản phẩm bán chạy"
+          );
+        }
+      },
+      onError: () => {
+        message.error("Lỗi khi tải dữ liệu sản phẩm bán chạy");
+      },
+    });
+  };
+  const fetchServices = () => {
+    _request({
+      path: "/statistics/services",
+      method: "GET",
+      onSuccess: (response) => {
+        if (response.success) {
+          setServices(response.data);
+        } else {
+          message.error(response.message || "Lỗi khi tải dữ liệu dịch vụ");
+        }
+      },
+      onError: () => {
+        message.error("Lỗi khi tải dữ liệu dịch vụ");
+      },
+    });
+  };
+  const fetchGrowthData = () => {
+    _request({
+      path: "/statistics/growth",
+      method: "GET",
+      onSuccess: (response) => {
+        if (response.success) {
+          setGrowthData(response.data);
+        } else {
+          message.error(response.message || "Lỗi khi tải dữ liệu tăng trưởng");
+        }
+      },
+      onError: () => {
+        message.error("Lỗi khi tải dữ liệu tăng trưởng");
+      },
+    });
+  }; 
+  const refreshAllData = () => {
+    fetchDashboardData();
+    fetchMonthlySales(selectedYear);
+    fetchTopSellingProducts();
+    fetchServices();
+    fetchGrowthData();
+
+    _request({
+      path: "/pets?page=0&size=100&onlyActive=true",
+      method: "GET",
+      onSuccess: (response) => {
+        if (
+          response.success &&
+          response.data &&
+          response.data.content &&
+          Array.isArray(response.data.content)
+        ) {
+          const pets = response.data.content;
+
+          const petTypeStats = new Map<string, number>();
+
+          pets.forEach((pet: any) => {
+            if (pet.category && pet.category.name) {
+              const categoryName = pet.category.name;
+              petTypeStats.set(
+                categoryName,
+                (petTypeStats.get(categoryName) || 0) + 1
+              );
+            }
+          });
+
+          const colors = [
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#F9DC5C",
+            "#7986CB",
+          ];
+          const petCats: PetCategory[] = [];
+
+          let index = 0;
+          petTypeStats.forEach((count, name) => {
+            petCats.push({
+              name: name,
+              value: count,
+              color: colors[index % colors.length],
+            });
+            index++;
+          });
+
+          if (petCats.length > 0) {
+            setPetCategories(petCats);
+          }
+        } else {
+          message.error("Không thể tải dữ liệu phân loại thú cưng");
+        }
+      },
+      onError: () => {
+        message.error("Không thể tải dữ liệu phân loại thú cưng");
+      },
+    });
+
+    message.success("Đã làm mới dữ liệu dashboard");
+  }; 
+  useEffect(() => {
+    fetchDashboardData();
+    fetchMonthlySales(selectedYear);
+    fetchTopSellingProducts();
+    fetchServices();
+    fetchGrowthData();
+
+    const intervalId = setInterval(() => {
+      fetchDashboardData();
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+  useEffect(() => {
+    _request({
+      path: "/pets?page=0&size=100&onlyActive=true", 
+      method: "GET",
+      onSuccess: (response) => {
+        if (
+          response.success &&
+          response.data &&
+          response.data.content &&
+          Array.isArray(response.data.content)
+        ) {
+          const pets = response.data.content;
+
+          const petTypeStats = new Map<string, number>();
+
+          pets.forEach((pet: any) => {
+            if (pet.category && pet.category.name) {
+              const categoryName = pet.category.name;
+              petTypeStats.set(
+                categoryName,
+                (petTypeStats.get(categoryName) || 0) + 1
+              );
+            }
+          });
+
+          const colors = [
+            "#FF6B6B",
+            "#4ECDC4",
+            "#45B7D1",
+            "#96CEB4",
+            "#F9DC5C",
+            "#7986CB",
+          ];
+          const petCats: PetCategory[] = [];
+
+          let index = 0;
+          petTypeStats.forEach((count, name) => {
+            petCats.push({
+              name: name,
+              value: count,
+              color: colors[index % colors.length],
+            });
+            index++;
+          });
+
+          if (petCats.length > 0) {
+            setPetCategories(petCats);
+          }
+        } else {
+          message.error("Không thể tải dữ liệu phân loại thú cưng");
+        }
+      },
+      onError: () => {
+        message.error("Không thể tải dữ liệu thú cưng");
+      },
+    });
+  }, []);
+  useEffect(() => {
+    if (selectedYear) {
+      fetchMonthlySales(selectedYear);
+    }
+  }, [selectedYear]);
 
   const productColumns = [
     {
       title: "Sản phẩm",
-      dataIndex: "name",
-      key: "name",
+      dataIndex: "productName",
+      key: "productName",
     },
     {
       title: "Danh mục",
-      dataIndex: "category",
-      key: "category",
+      dataIndex: "categoryName",
+      key: "categoryName",
       render: (category: string) => <Tag>{category}</Tag>,
     },
     {
       title: "Đã bán",
-      dataIndex: "sales",
-      key: "sales",
+      dataIndex: "totalSold",
+      key: "totalSold",
+    },
+    {
+      title: "Kho còn",
+      dataIndex: "stockQuantity",
+      key: "stockQuantity",
+      render: (quantity: number) => {
+        let color = "green";
+        if (quantity < 10) color = "red";
+        else if (quantity < 30) color = "orange";
+        return <Tag color={color}>{quantity}</Tag>;
+      },
     },
     {
       title: "Doanh thu",
@@ -285,231 +423,278 @@ const Dashboard: React.FC = () => {
     },
   ];
 
+  const transformMonthlyDataForChart = () => {
+    return monthlySalesData.map((item) => ({
+      month: item.monthName,
+      revenue: item.totalRevenue,
+      orders: item.totalOrders,
+    }));
+  };
+
+  const transformServicesForChart = () => {
+    return services.map((service) => ({
+      name: service.serviceName,
+      bookings: service.totalBookings,
+      revenue: service.totalRevenue,
+    }));
+  };
+
+  if (loading && !dashboardData) {
+    return (
+      <div className="dashboard-loading">
+        <Spin size="large" tip="Đang tải dữ liệu..." />
+      </div>
+    );
+  }
+
+  if (error && !dashboardData) {
+    return (
+      <div className="dashboard-error">
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            <span>
+              {error}.{" "}
+              <Button type="link" onClick={refreshAllData}>
+                Thử lại
+              </Button>
+            </span>
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="pet-store-dashboard">
       <Layout>
-        {/* <Header className="dashboard-header">
-          <Title level={2}>🐾 Pet Store Dashboard</Title>
-        </Header> */}
-
         <Content className="dashboard-content">
-          {/* Filters */}
-          
-
+          <Row
+            className="dashboard-header-row"
+            gutter={[16, 16]}
+            style={{ marginBottom: 16 }}
+          >
+            <Col flex="auto">
+              <Title level={4} className="dashboard-title">
+                Tổng quan cửa hàng
+              </Title>
+            </Col>
+            <Col>
+              <Button
+                type="primary"
+                icon={<ReloadOutlined />}
+                onClick={refreshAllData}
+                className="refresh-button"
+              >
+                Làm mới
+              </Button>
+            </Col>
+          </Row>
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card">
                 <Statistic
                   title="Tổng doanh thu"
-                  value={mockData.stats.totalRevenue}
+                  value={dashboardData?.salesStatistics.totalRevenue || 0}
                   precision={0}
                   valueStyle={{ color: "#3f8600" }}
                   prefix={<DollarOutlined />}
                   suffix="đ"
                 />
-                <div className="growth-indicator">
-                  <RiseOutlined />
-                  <span>
-                    +{mockData.stats.revenueGrowth}% so với tháng trước
-                  </span>
-                </div>
+                {growthData && (
+                  <div className="growth-indicator">
+                    <RiseOutlined />
+                    <span>
+                      +{growthData.revenueGrowthPercentage.toFixed(1)}% so với
+                      tháng trước
+                    </span>
+                  </div>
+                )}
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card">
                 <Statistic
                   title="Tổng đơn hàng"
-                  value={mockData.stats.totalOrders}
+                  value={dashboardData?.salesStatistics.totalOrders || 0}
                   valueStyle={{ color: "#1890ff" }}
                   prefix={<ShoppingCartOutlined />}
                 />
-                <div className="growth-indicator">
-                  <RiseOutlined />
-                  <span>+{mockData.stats.orderGrowth}% so với tháng trước</span>
-                </div>
+                {growthData && (
+                  <div className="growth-indicator">
+                    <RiseOutlined />
+                    <span>
+                      +{growthData.orderGrowthPercentage.toFixed(1)}% so với
+                      tháng trước
+                    </span>
+                  </div>
+                )}
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card">
                 <Statistic
                   title="Khách hàng"
-                  value={mockData.stats.totalCustomers}
+                  value={dashboardData?.customerStatistics.totalCustomers || 0}
                   valueStyle={{ color: "#722ed1" }}
                   prefix={<UserOutlined />}
                 />
-                <div className="growth-indicator">
-                  <RiseOutlined />
-                  <span>
-                    +{mockData.stats.customerGrowth}% so với tháng trước
-                  </span>
-                </div>
+                {growthData && (
+                  <div className="growth-indicator">
+                    <RiseOutlined />
+                    <span>
+                      +{growthData.customerGrowthPercentage.toFixed(1)}% so với
+                      tháng trước
+                    </span>
+                  </div>
+                )}
               </Card>
-            </Col>
+            </Col>{" "}
             <Col xs={24} sm={12} lg={6}>
               <Card className="stats-card">
                 <Statistic
                   title="Thú cưng"
-                  value={mockData.stats.totalPets}
+                  value={petCategories.reduce(
+                    (sum, category) => sum + category.value,
+                    0
+                  )}
                   valueStyle={{ color: "#eb2f96" }}
                   prefix={<HeartOutlined />}
                 />
                 <div className="growth-indicator">
                   <RiseOutlined />
-                  <span>+{mockData.stats.petGrowth}% so với tháng trước</span>
+                  <span>Tổng số thú cưng đang có</span>
                 </div>
               </Card>
             </Col>
           </Row>
-
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={16}>
               <Card
                 title="📈 Doanh thu & Đơn hàng theo tháng"
                 className="chart-card"
+                extra={
+                  <Select
+                    defaultValue={selectedYear}
+                    onChange={setSelectedYear}
+                  >
+                    <Option value={2023}>2023</Option>
+                    <Option value={2024}>2024</Option>
+                    <Option value={2025}>2025</Option>
+                  </Select>
+                }
               >
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={mockData.revenueChart}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip />
-                    <Line
-                      yAxisId="left"
-                      type="monotone"
-                      dataKey="revenue"
-                      stroke="#8884d8"
-                      strokeWidth={3}
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="orders"
-                      stroke="#82ca9d"
-                      strokeWidth={3}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {monthlySalesData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={transformMonthlyDataForChart()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" />
+                      <YAxis yAxisId="left" />
+                      <YAxis yAxisId="right" orientation="right" />
+                      <Tooltip />
+                      <Line
+                        yAxisId="left"
+                        type="monotone"
+                        dataKey="revenue"
+                        name="Doanh thu"
+                        stroke="#8884d8"
+                        strokeWidth={3}
+                      />
+                      <Line
+                        yAxisId="right"
+                        type="monotone"
+                        dataKey="orders"
+                        name="Đơn hàng"
+                        stroke="#82ca9d"
+                        strokeWidth={3}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-chart">
+                    <Empty description="Không có dữ liệu doanh thu theo tháng" />
+                  </div>
+                )}
               </Card>
             </Col>
             <Col xs={24} lg={8}>
               <Card title="🐾 Phân bố thú cưng" className="chart-card">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={mockData.petCategories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name} ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {mockData.petCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
+                {petCategories.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={petCategories}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => {
+                          // Calculate percentage based on actual values
+                          const total = petCategories.reduce(
+                            (sum, category) => sum + category.value,
+                            0
+                          );
+                          const percent =
+                            total > 0 ? ((value / total) * 100).toFixed(0) : 0;
+                          return `${name}: ${value} (${percent}%)`;
+                        }}
+                        outerRadius={80}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {petCategories.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-chart">
+                    <Empty description="Không có dữ liệu phân loại thú cưng" />
+                  </div>
+                )}
               </Card>
             </Col>
-          </Row>
-
+          </Row>{" "}
           <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
             <Col xs={24} lg={12}>
               <Card title="🛠️ Dịch vụ phổ biến" className="chart-card">
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={mockData.services}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="bookings" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Card title="🏆 Khách hàng VIP" className="customer-list">
-                <List
-                  dataSource={mockData.topCustomers}
-                  renderItem={(customer) => (
-                    <List.Item>
-                      <List.Item.Meta
-                        avatar={<Avatar icon={<UserOutlined />} />}
-                        title={customer.name}
-                        description={
-                          <Space direction="vertical" size="small">
-                            <Text>
-                              Đã chi:{" "}
-                              {customer.totalSpent.toLocaleString("vi-VN")}đ
-                            </Text>
-                            <Text>Đơn hàng: {customer.orders}</Text>
-                            <Badge
-                              count={customer.loyaltyPoints}
-                              showZero
-                              color="#faad14"
-                            />
-                          </Space>
-                        }
+                {services.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={transformServicesForChart()}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar
+                        dataKey="bookings"
+                        name="Số lượt đặt"
+                        fill="#8884d8"
                       />
-                    </List.Item>
-                  )}
-                />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="empty-chart">
+                    <Empty description="Không có dữ liệu dịch vụ" />
+                  </div>
+                )}
               </Card>
             </Col>
           </Row>
-
-          <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-            <Col xs={24} lg={14}>
-              <Card title="📋 Đơn hàng gần đây" className="table-card">
-                <Table
-                  columns={orderColumns}
-                  dataSource={mockData.recentOrders}
-                  pagination={{ pageSize: 5 }}
-                  rowKey="id"
-                  size="small"
-                />
-              </Card>
-            </Col>
-            <Col xs={24} lg={10}>
-              <Card title="⏰ Hoạt động gần đây" className="activity-timeline">
-                <Timeline>
-                  {mockData.recentActivities.map((activity, index) => (
-                    <Timeline.Item
-                      key={index}
-                      color={
-                        activity.type === "order"
-                          ? "green"
-                          : activity.type === "customer"
-                          ? "blue"
-                          : "orange"
-                      }
-                    >
-                      <Text strong>{activity.action}</Text>
-                      <br />
-                      <Text type="secondary">{activity.time}</Text>
-                    </Timeline.Item>
-                  ))}
-                </Timeline>
-              </Card>
-            </Col>
-          </Row>
-
           <Row gutter={[16, 16]}>
             <Col span={24}>
               <Card title="🎯 Sản phẩm bán chạy" className="table-card">
-                <Table
-                  columns={productColumns}
-                  dataSource={mockData.topProducts}
-                  pagination={false}
-                  rowKey="id"
-                  size="small"
-                />
+                {topSellingProducts.length > 0 ? (
+                  <Table
+                    columns={productColumns}
+                    dataSource={topSellingProducts}
+                    pagination={false}
+                    rowKey="productId"
+                    size="small"
+                  />
+                ) : (
+                  <Empty description="Không có dữ liệu sản phẩm bán chạy" />
+                )}
               </Card>
             </Col>
           </Row>

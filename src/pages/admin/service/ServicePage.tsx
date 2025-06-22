@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Table, 
   Input, 
@@ -12,12 +12,10 @@ import {
   Form,
   InputNumber,
   Switch,
-  message,
-  Popconfirm
+  message
 } from 'antd';
 import { 
   SearchOutlined, 
-  FilterOutlined, 
   MoreOutlined,
   PlusOutlined,
   EditOutlined,
@@ -25,7 +23,8 @@ import {
   EyeOutlined,
   PoweroffOutlined
 } from '@ant-design/icons';
-import type { ColumnsType, MenuProps } from 'antd/es/table';
+import type { ColumnsType } from 'antd/es/table';
+import type { MenuProps } from 'antd';
 import { _request } from '../../../network/Api';
 
 const { Search, TextArea } = Input;
@@ -57,95 +56,75 @@ const ServicePage: React.FC = () => {
   const [searchText, setSearchText] = useState('');
   const [sortField, setSortField] = useState<string>('');
   const [sortOrder, setSortOrder] = useState<'ascend' | 'descend'>('ascend');
-  const [allServicesData, setAllServicesData] = useState<Service[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [form] = Form.useForm();
   const [filterStatus, setFilterStatus] = useState<string>('');
   const [showCompact, setShowCompact] = useState(false);
-
-  // Load services from API
-  const loadServices = async () => {
+  // Load services from API with pagination and filters
+  const loadServices = async (page?: number, search?: string, status?: string, sort?: string) => {
     setLoading(true);
     try {
+      const currentPageIndex = (page || currentPage) - 1; // Convert to 0-based index
+      const params = new URLSearchParams({
+        page: currentPageIndex.toString(),
+        size: pageSize.toString(),
+      });
+
+      if (search) {
+        params.append('name', search);
+      }
+      if (status) {
+        params.append('isActive', status === 'active' ? 'true' : 'false');
+      }
+      if (sort) {
+        const sortParts = sort.split(',');
+        params.append('sortBy', sortParts[0]);
+        params.append('sortDir', sortParts[1].toUpperCase());
+      }
+
+      const endpoint = search || status ? '/services/search' : '/services';
+      
       await _request({
-        path: "/services",
+        path: `${endpoint}?${params.toString()}`,
         method: "GET",
-        onSuccess(data) {
-          const servicesWithKeys = data.data.content.map((service: any) => ({
+        onSuccess(response) {
+          const data = response.data;
+          const servicesWithKeys = data.content.map((service: any) => ({
             ...service,
             key: service.id.toString()
           }));
-          setAllServicesData(servicesWithKeys);
+          setServices(servicesWithKeys);
+          setTotalElements(data.totalElements);
+          setTotalPages(data.totalPages);
         },
         onError(error) {
           message.error('Không thể tải danh sách dịch vụ');
           console.error(error);
         },
       });
+    } catch (error) {
+      message.error('Có lỗi xảy ra khi tải dịch vụ');
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
     loadServices();
   }, []);
 
-  // Filter and sort data
-  const filteredData = useMemo(() => {
-    let filtered = allServicesData;
+  // Reload services when filters or pagination change
+  useEffect(() => {
+    const sortParam = sortField && sortOrder ? `${sortField},${sortOrder === 'ascend' ? 'asc' : 'desc'}` : undefined;
+    loadServices(currentPage, searchText, filterStatus, sortParam);
+  }, [currentPage, pageSize, searchText, filterStatus, sortField, sortOrder]);
 
-    // Search filter
-    if (searchText) {
-      filtered = filtered.filter(service =>
-        service.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        service.description.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    // Status filter
-    if (filterStatus) {
-      const isActive = filterStatus === 'active';
-      filtered = filtered.filter(service => service.isActive === isActive);
-    }
-
-    // Sort
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-        
-        if (sortField === 'createdAt' || sortField === 'updatedAt') {
-          aValue = new Date(a[sortField as keyof Service] as string).getTime();
-          bValue = new Date(b[sortField as keyof Service] as string).getTime();
-        } else if (sortField === 'price' || sortField === 'durationMinutes') {
-          aValue = a[sortField as keyof Service] as number;
-          bValue = b[sortField as keyof Service] as number;
-        } else {
-          aValue = a[sortField as keyof Service];
-          bValue = b[sortField as keyof Service];
-        }
-
-        if (sortOrder === 'ascend') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-
-    return filtered;
-  }, [allServicesData, searchText, sortField, sortOrder, filterStatus]);
-
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const currentPageData = services;
+  const totalItems = totalElements;
 
   // Handle service actions
   const handleEdit = (service: Service) => {
@@ -159,15 +138,14 @@ const ServicePage: React.FC = () => {
     });
     setIsModalVisible(true);
   };
-
   const handleHardDelete = async (serviceId: number) => {
     try {
       await _request({
-        path: `/services/${serviceId}/hard`,
+        path: `/services/${serviceId}`,
         method: "DELETE",
         onSuccess() {
-          message.success('Xóa vĩnh viễn dịch vụ thành công');
-          loadServices();
+          message.success('Xóa dịch vụ thành công');
+          loadServices(currentPage, searchText, filterStatus);
         },
         onError(error) {
           message.error('Không thể xóa dịch vụ');
@@ -183,10 +161,10 @@ const ServicePage: React.FC = () => {
     try {
       await _request({
         path: `/services/${serviceId}/toggle-status`,
-        method: "PUT",
-        onSuccess(data) {
+        method: "PATCH",
+        onSuccess() {
           message.success('Cập nhật trạng thái dịch vụ thành công');
-          loadServices();
+          loadServices(currentPage, searchText, filterStatus);
         },
         onError(error) {
           message.error('Không thể cập nhật trạng thái dịch vụ');
@@ -215,7 +193,6 @@ const ServicePage: React.FC = () => {
       ),
     });
   };
-
   // Get action menu items for each service
   const getActionItems = (service: Service): MenuProps['items'] => [
     {
@@ -246,21 +223,21 @@ const ServicePage: React.FC = () => {
     },
     {
       key: 'delete',
-      label: 'Xóa vĩnh viễn',
+      label: 'Xóa',
       icon: <DeleteOutlined />,
       danger: true,
       onClick: () => {
         Modal.confirm({
-          title: 'Xác nhận xóa vĩnh viễn',
+          title: 'Xác nhận xóa',
           content: (
             <div>
-              <p>Bạn có chắc chắn muốn xóa vĩnh viễn dịch vụ "{service.name}"?</p>
+              <p>Bạn có chắc chắn muốn xóa dịch vụ "{service.name}"?</p>
               <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
-                ⚠️ Hành động này không thể hoàn tác!
+                ⚠️ Dịch vụ sẽ bị xóa hoàn toàn!
               </p>
             </div>
           ),
-          okText: 'Xóa vĩnh viễn',
+          okText: 'Xóa',
           cancelText: 'Hủy',
           okType: 'danger',
           onOk: () => handleHardDelete(service.id),
@@ -268,7 +245,6 @@ const ServicePage: React.FC = () => {
       },
     },
   ];
-
   // Handle form submission
   const handleSubmit = async (values: ServiceFormData) => {
     try {
@@ -291,7 +267,7 @@ const ServicePage: React.FC = () => {
           setIsModalVisible(false);
           form.resetFields();
           setEditingService(null);
-          loadServices();
+          loadServices(currentPage, searchText, filterStatus);
         },
         onError(error) {
           message.error(isEdit ? 'Không thể cập nhật dịch vụ' : 'Không thể thêm dịch vụ');
@@ -302,30 +278,29 @@ const ServicePage: React.FC = () => {
       message.error('Có lỗi xảy ra');
     }
   };
-
   // Bulk delete
   const handleBulkDelete = async () => {
     if (selectedRowKeys.length === 0) return;
 
     Modal.confirm({
-      title: 'Xác nhận xóa vĩnh viễn',
+      title: 'Xác nhận xóa dịch vụ',
       content: (
         <div>
-          <p>Bạn có chắc chắn muốn xóa vĩnh viễn {selectedRowKeys.length} dịch vụ đã chọn?</p>
+          <p>Bạn có chắc chắn muốn xóa {selectedRowKeys.length} dịch vụ đã chọn?</p>
           <p style={{ color: '#ff4d4f', fontSize: '12px' }}>
-            ⚠️ Hành động này không thể hoàn tác!
+            ⚠️ Dịch vụ sẽ bị xóa hoàn toàn!
           </p>
         </div>
       ),
-      okText: 'Xóa vĩnh viễn',
+      okText: 'Xóa',
       cancelText: 'Hủy',
       okType: 'danger',
       onOk: async () => {
         try {
-          // Delete services one by one using hard delete endpoint
+          // Delete services one by one using delete endpoint
           for (const key of selectedRowKeys) {
             await _request({
-              path: `/services/${key}/hard`,
+              path: `/services/${key}`,
               method: "DELETE",
               onSuccess() {},
               onError(error) {
@@ -333,17 +308,16 @@ const ServicePage: React.FC = () => {
               },
             });
           }
-          message.success('Xóa vĩnh viễn các dịch vụ thành công');
+          message.success('Xóa các dịch vụ thành công');
           setSelectedRowKeys([]);
-          loadServices();
+          loadServices(currentPage, searchText, filterStatus);
         } catch (error) {
           message.error('Có lỗi xảy ra khi xóa dịch vụ');
         }
       },
     });
   };
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  const handleTableChange = (_pagination: any, _filters: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
       setSortOrder(sorter.order);
@@ -581,10 +555,9 @@ const ServicePage: React.FC = () => {
               <option value="">Tất cả</option>
               <option value="active">Hoạt động</option>
               <option value="inactive">Tạm dừng</option>
-            </select>
-            {selectedRowKeys.length > 0 && (
+            </select>            {selectedRowKeys.length > 0 && (
               <Button danger onClick={handleBulkDelete}>
-                Xóa vĩnh viễn đã chọn ({selectedRowKeys.length})
+                Xóa đã chọn ({selectedRowKeys.length})
               </Button>
             )}
           </Space>
@@ -746,9 +719,7 @@ const ServicePage: React.FC = () => {
                 style={{ width: '100%' }}
                 placeholder="30"
               />
-            </Form.Item>
-
-            <Form.Item
+            </Form.Item>            <Form.Item
               name="price"
               label="Giá tiền (VND)"
               rules={[{ required: true, message: 'Vui lòng nhập giá tiền' }]}
@@ -758,7 +729,6 @@ const ServicePage: React.FC = () => {
                 min={0} 
                 style={{ width: '100%' }}
                 formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={value => value!.replace(/\$\s?|(,*)/g, '')}
                 placeholder="100,000"
               />
             </Form.Item>

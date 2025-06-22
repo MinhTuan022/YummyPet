@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   Input,
@@ -12,18 +12,15 @@ import {
   MenuProps,
   Modal,
   message,
-  Popconfirm,
   Tabs,
   Card,
   Row,
   Col,
-  Descriptions,
 } from "antd";
 import {
   SearchOutlined,
   FilterOutlined,
   MoreOutlined,
-  UserOutlined,
   PhoneOutlined,
   MailOutlined,
   DeleteOutlined,
@@ -32,8 +29,6 @@ import {
   ShoppingOutlined,
   StopOutlined,
   CalendarOutlined,
-  DollarOutlined,
-  InfoCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { _request } from "../../../network/Api";
@@ -46,20 +41,16 @@ interface Customer {
   id: number;
   customerCode: string;
   fullName: string;
-  username: string;
   phone: string;
   email: string;
-  address: string;
-  gender: string | null;
-  dateOfBirth: string;
+  address?: string;
+  dateOfBirth?: string;
+  gender?: "male" | "female" | null;
   loyaltyPoints: number;
   isActive: boolean;
   createdAt: string;
-  updatedAt: string;
-  totalPets?: number;
-  totalOrders?: number;
-  totalServiceOrders?: number;
-  cartItemsCount?: number;
+  updatedAt?: string;
+  hasAccount: boolean;
 }
 
 interface OrderSummaryDTO {
@@ -97,152 +88,122 @@ interface CustomerDetail extends Customer {
 
 const CustomerPage: React.FC = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const [currentPage, setCurrentPage] = useState(0); // API uses 0-based indexing
+  const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState("");
-  const [sortField, setSortField] = useState<string>("");
+  const [sortField, setSortField] = useState<string>("id");
   const [sortOrder, setSortOrder] = useState<"ascend" | "descend">("ascend");
-  const [allCustomersData, setAllCustomersData] = useState<Customer[]>([]);
+  
+  // Data states
+  const [customersData, setCustomersData] = useState<Customer[]>([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(false);
+  
+  // Modal states
   const [customerDetailModal, setCustomerDetailModal] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-
   const [orderHistoryModal, setOrderHistoryModal] = useState(false);
-const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
-const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
-  customer: Customer;
-  orders: OrderSummaryDTO[];
-  serviceOrders: ServiceOrderSummaryDTO[];
-} | null>(null);
-
-  useEffect(() => {
+  const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
+  const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
+    customer: Customer;
+    orders: OrderSummaryDTO[];
+    serviceOrders: ServiceOrderSummaryDTO[];
+  } | null>(null);  useEffect(() => {
     fetchCustomers();
-  }, []);
+  }, [currentPage, pageSize, sortField, sortOrder, searchText]);
 
   const fetchCustomers = () => {
     setLoading(true);
+    
+    const queryParams = new URLSearchParams();
+    queryParams.append('page', currentPage.toString());
+    queryParams.append('size', pageSize.toString());
+    
+    if (sortField) {
+      queryParams.append('sortBy', sortField);
+      queryParams.append('sortDir', sortOrder === 'ascend' ? 'asc' : 'desc');
+    }
+    
+    let apiPath = '/customers';
+    if (searchText) {
+      apiPath = '/customers/search';
+      queryParams.append('keyword', searchText);
+    }
+    
+    const pathWithParams = `${apiPath}?${queryParams.toString()}`;
+    
     _request({
-      path: "/customers",
+      path: pathWithParams,
       method: "GET",
-      onSuccess(data) {
-        setAllCustomersData(data.data);
+      onSuccess(response) {
+        if (response.success && response.data) {
+          const customers = response.data.content || [];
+          setCustomersData(customers);
+          setTotalElements(response.data.totalElements || 0);
+          setTotalPages(response.data.totalPages || 0);
+        }
         setLoading(false);
       },
       onError(error) {
         console.error("Error fetching customers:", error);
         setLoading(false);
-        // Fallback data for demo
-        setAllCustomersData([
-          {
-            id: 1,
-            customerCode: "KH001",
-            fullName: "Nguyễn Văn An",
-            username: "nguyenvanan",
-            phone: "0901234567",
-            email: "an.nguyen@email.com",
-            address: "123 Nguyễn Trãi, Hà Nội",
-            gender: "Nam",
-            dateOfBirth: "1990-05-15",
-            loyaltyPoints: 1250,
-            isActive: true,
-            createdAt: "2024-01-15T08:30:00.000Z",
-            updatedAt: "2024-06-10T14:20:00.000Z",
-            totalPets: 2,
-            totalOrders: 5,
-            totalServiceOrders: 3,
-            cartItemsCount: 0,
-          },
-          {
-            id: 2,
-            customerCode: "KH002",
-            fullName: "Trần Thị Bình",
-            username: "tranthibinh",
-            phone: "0912345678",
-            email: "binh.tran@email.com",
-            address: "456 Lê Lợi, TP.HCM",
-            gender: "Nữ",
-            dateOfBirth: "1985-08-22",
-            loyaltyPoints: 2100,
-            isActive: true,
-            createdAt: "2024-02-20T10:15:00.000Z",
-            updatedAt: "2024-06-12T16:45:00.000Z",
-            totalPets: 1,
-            totalOrders: 8,
-            totalServiceOrders: 4,
-            cartItemsCount: 2,
-          },
-          {
-            id: 3,
-            customerCode: "KH003",
-            fullName: "Lê Minh Cường",
-            username: "leminhcuong",
-            phone: "0923456789",
-            email: "cuong.le@email.com",
-            address: "789 Trần Hưng Đạo, Đà Nẵng",
-            gender: "Nam",
-            dateOfBirth: "1992-12-03",
-            loyaltyPoints: 850,
-            isActive: false,
-            createdAt: "2024-03-10T14:20:00.000Z",
-            updatedAt: "2024-06-05T09:30:00.000Z",
-            totalPets: 3,
-            totalOrders: 2,
-            totalServiceOrders: 1,
-            cartItemsCount: 1,
-          },
-        ]);
+        // Fallback data for demo with updated structure
+        // const fallbackData = [
+        //   {
+        //     id: 1,
+        //     customerCode: "CUS000001",
+        //     fullName: "Nguyễn Văn An",
+        //     phone: "0901234567",
+        //     email: "an.nguyen@email.com",
+        //     address: "123 Nguyễn Trãi, Hà Nội",
+        //     gender: "male" as const,
+        //     dateOfBirth: "1990-05-15",
+        //     loyaltyPoints: 1250,
+        //     isActive: true,
+        //     createdAt: "2024-01-15T08:30:00.000Z",
+        //     updatedAt: "2024-06-10T14:20:00.000Z",
+        //     hasAccount: true,
+        //   },
+        //   {
+        //     id: 2,
+        //     customerCode: "CUS000002",
+        //     fullName: "Trần Thị Bình",
+        //     phone: "0912345678",
+        //     email: "binh.tran@email.com",
+        //     address: "456 Lê Lợi, TP.HCM",
+        //     gender: "female" as const,
+        //     dateOfBirth: "1985-08-22",
+        //     loyaltyPoints: 2100,
+        //     isActive: true,
+        //     createdAt: "2024-02-20T10:15:00.000Z",
+        //     updatedAt: "2024-06-12T16:45:00.000Z",
+        //     hasAccount: true,
+        //   },
+        //   {
+        //     id: 3,
+        //     customerCode: "CUS000003",
+        //     fullName: "Lê Minh Cường",
+        //     phone: "0923456789",
+        //     email: "cuong.le@email.com",
+        //     address: "789 Trần Hưng Đạo, Đà Nẵng",
+        //     gender: "male" as const,
+        //     dateOfBirth: "1992-12-03",
+        //     loyaltyPoints: 850,
+        //     isActive: false,
+        //     createdAt: "2024-03-10T14:20:00.000Z",
+        //     updatedAt: "2024-06-05T09:30:00.000Z",
+        //     hasAccount: false,
+        //   },
+        // ];
+        // setCustomersData(fallbackData);
+        // setTotalElements(fallbackData.length);
+        // setTotalPages(1);
       },
     });
-  };
-
-  const filteredData = useMemo(() => {
-    let filtered = allCustomersData;
-
-    if (searchText) {
-      filtered = filtered.filter(
-        (customer) =>
-          customer.fullName.toLowerCase().includes(searchText.toLowerCase()) ||
-          customer.email.toLowerCase().includes(searchText.toLowerCase()) ||
-          customer.phone.includes(searchText) ||
-          customer.customerCode.toLowerCase().includes(searchText.toLowerCase())
-      );
-    }
-
-    if (sortField) {
-      filtered = [...filtered].sort((a, b) => {
-        let aValue, bValue;
-
-        if (sortField === "createdAt" || sortField === "updatedAt") {
-          aValue = new Date(a[sortField]).getTime();
-          bValue = new Date(b[sortField]).getTime();
-        } else if (sortField === "loyaltyPoints") {
-          aValue = a.loyaltyPoints;
-          bValue = b.loyaltyPoints;
-        } else {
-          aValue = a[sortField as keyof Customer];
-          bValue = b[sortField as keyof Customer];
-        }
-
-        if (sortOrder === "ascend") {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
-
-    return filtered;
-  }, [allCustomersData, searchText, sortField, sortOrder]);
-
-  const currentPageData = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, currentPage, pageSize]);
-
-  const totalItems = filteredData.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  };  // Since API handles pagination and search, we don't need client-side filtering
+  const currentPageData = customersData;
 
   // Handle individual customer actions
   const handleEditCustomer = (customer: Customer) => {
@@ -425,7 +386,6 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
     },
   });
 };
-
   const handleToggleAccountStatus = (customer: Customer) => {
     const newStatus = !customer.isActive;
     const action = newStatus ? "kích hoạt" : "tạm khóa";
@@ -439,12 +399,8 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
           path: apiPath,
           method: "PUT",
           onSuccess() {
-            // Update customer status in state
-            setAllCustomersData(prev => 
-              prev.map(c => 
-                c.id === customer.id ? { ...c, isActive: newStatus } : c
-              )
-            );
+            // Refresh data after status change
+            fetchCustomers();
             message.success(`Đã ${action} tài khoản của ${customer.fullName}`);
           },
           onError(error) {
@@ -475,7 +431,8 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
           path: `/customers/${customer.id}/hard-delete`,
           method: "DELETE",
           onSuccess() {
-            setAllCustomersData(prev => prev.filter(c => c.id !== customer.id));
+            // Refresh data after deletion
+            fetchCustomers();
             message.success(`Đã xóa vĩnh viễn khách hàng ${customer.fullName}`);
             // Remove from selected if it was selected
             setSelectedRowKeys(prev => prev.filter(key => key !== customer.id));
@@ -518,9 +475,8 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
 
         try {
           await Promise.all(deletePromises);
-          setAllCustomersData(prev => 
-            prev.filter(customer => !selectedRowKeys.includes(customer.id))
-          );
+          // Refresh data after bulk deletion
+          fetchCustomers();
           message.success(`Đã xóa vĩnh viễn ${selectedRowKeys.length} khách hàng`);
           setSelectedRowKeys([]);
         } catch (error) {
@@ -570,15 +526,15 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
       onClick: () => handleDeleteCustomer(customer),
     },
   ];
-
-  const handleTableChange = (pagination: any, filters: any, sorter: any) => {
+  const handleTableChange = (_: any, __: any, sorter: any) => {
     if (sorter.field) {
       setSortField(sorter.field);
       setSortOrder(sorter.order);
     }
   };
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "Chưa cập nhật";
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
 
@@ -592,8 +548,8 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
       currency: 'VND'
     }).format(amount);
   };
-
-  const getAge = (dateOfBirth: string) => {
+  const getAge = (dateOfBirth?: string) => {
+    if (!dateOfBirth) return 0;
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
@@ -700,12 +656,11 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
     {
       title: "Thông tin khách hàng",
       dataIndex: "customer",
-      render: (_, record) => (
-        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+      render: (_, record) => (        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <Avatar
             size={45}
             style={{
-              backgroundColor: record.gender === "Nam" ? "#1890ff" : record.gender === "Nữ" ? "#ff69b4" : "#8c8c8c",
+              backgroundColor: record.gender === "male" ? "#1890ff" : record.gender === "female" ? "#ff69b4" : "#8c8c8c",
               color: "white",
               fontWeight: "bold",
             }}
@@ -749,14 +704,13 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
           </div>
         </div>
       ),
-    },
-    {
+    },    {
       title: "Giới tính",
       dataIndex: "gender",
       sorter: true,
-      render: (gender: string | null) => (
-        <Tag color={gender === "Nam" ? "blue" : gender === "Nữ" ? "pink" : "default"}>
-          {gender || "Chưa cập nhật"}
+      render: (gender: "male" | "female" | null) => (
+        <Tag color={gender === "male" ? "blue" : gender === "female" ? "pink" : "default"}>
+          {gender === "male" ? "Nam" : gender === "female" ? "Nữ" : "Chưa cập nhật"}
         </Tag>
       ),
     },
@@ -809,11 +763,10 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
   const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
     setSelectedRowKeys(newSelectedRowKeys);
   };
-
   const rowSelection = {
     selectedRowKeys,
     onChange: onSelectChange,
-    onSelectAll: (selected: boolean, selectedRows: Customer[], changeRows: Customer[]) => {
+    onSelectAll: (selected: boolean) => {
       if (selected) {
         // Select all current page items
         const allCurrentPageKeys = currentPageData.map(item => item.id);
@@ -828,28 +781,28 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
 
   const handleSearch = (value: string) => {
     setSearchText(value);
-    setCurrentPage(1);
+    setCurrentPage(0); // Reset to first page for API
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1);
+    setCurrentPage(0); // Reset to first page for API
   };
 
   const goToPreviousPage = () => {
-    if (currentPage > 1) {
+    if (currentPage > 0) {
       setCurrentPage(currentPage - 1);
     }
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
+    if (currentPage < totalPages - 1) {
       setCurrentPage(currentPage + 1);
     }
   };
-
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  // Calculate display values (API uses 0-based indexing, but display is 1-based)
+  const startItem = currentPage * pageSize + 1;
+  const endItem = Math.min((currentPage + 1) * pageSize, totalElements);
 
   return (
     <div
@@ -917,10 +870,9 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
               alignItems: "center",
               padding: "16px 0",
             }}
-          >
-            <div style={{ color: "#8c8c8c", fontSize: "14px" }}>
-              {totalItems > 0
-                ? `${startItem}-${endItem} trong tổng số ${totalItems}`
+          >            <div style={{ color: "#8c8c8c", fontSize: "14px" }}>
+              {totalElements > 0
+                ? `${startItem}-${endItem} trong tổng số ${totalElements}`
                 : "0 trong tổng số 0"}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
@@ -939,18 +891,18 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
               </Select>
               <Button
                 type="text"
-                disabled={currentPage === 1}
+                disabled={currentPage === 0}
                 onClick={goToPreviousPage}
                 style={{ padding: "4px 8px" }}
               >
                 ‹
               </Button>
               <span style={{ color: "#8c8c8c", fontSize: "14px" }}>
-                Trang {currentPage} / {totalPages || 1}
+                Trang {currentPage + 1} / {totalPages || 1}
               </span>
               <Button
                 type="text"
-                disabled={currentPage === totalPages || totalPages === 0}
+                disabled={currentPage === totalPages - 1 || totalPages === 0}
                 onClick={goToNextPage}
                 style={{ padding: "4px 8px" }}
               >
@@ -1016,11 +968,10 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
           </div>
         ) : selectedCustomer && (
           <div style={{ padding: "16px 0" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
-              <Avatar
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" }}>              <Avatar
                 size={60}
                 style={{
-                  backgroundColor: selectedCustomer.gender === "Nam" ? "#1890ff" : selectedCustomer.gender === "Nữ" ? "#ff69b4" : "#8c8c8c",
+                  backgroundColor: selectedCustomer.gender === "male" ? "#1890ff" : selectedCustomer.gender === "female" ? "#ff69b4" : "#8c8c8c",
                   color: "white",
                   fontWeight: "bold",
                   fontSize: "24px"
@@ -1037,8 +988,8 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
                   <Tag color={selectedCustomer.isActive ? "green" : "red"}>
                     {selectedCustomer.isActive ? "Hoạt động" : "Tạm khóa"}
                   </Tag>
-                  <Tag color={selectedCustomer.gender === "Nam" ? "blue" : selectedCustomer.gender === "Nữ" ? "pink" : "default"}>
-                    {selectedCustomer.gender || "Chưa cập nhật"}
+                  <Tag color={selectedCustomer.gender === "male" ? "blue" : selectedCustomer.gender === "female" ? "pink" : "default"}>
+                    {selectedCustomer.gender === "male" ? "Nam" : selectedCustomer.gender === "female" ? "Nữ" : "Chưa cập nhật"}
                   </Tag>
                 </Space>
               </div>
@@ -1062,11 +1013,10 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
                   </div>
                 </div>
               </div>
-              <div>
-                <h4 style={{ marginBottom: "16px", color: "#262626" }}>Thông tin cá nhân</h4>
+              <div>                <h4 style={{ marginBottom: "16px", color: "#262626" }}>Thông tin cá nhân</h4>
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <div><strong>Tên đăng nhập:</strong> {selectedCustomer.username}</div>
                   <div><strong>Ngày sinh:</strong> {formatDate(selectedCustomer.dateOfBirth)}</div>
+                  <div><strong>Tài khoản:</strong> {selectedCustomer.hasAccount ? "Có tài khoản" : "Khách vãng lai"}</div>
                   <div><strong>Điểm tích lũy:</strong> 
                     <span style={{ 
                       color: selectedCustomer.loyaltyPoints > 1500 ? "#52c41a" : selectedCustomer.loyaltyPoints > 1000 ? "#fa8c16" : "#8c8c8c",
@@ -1170,12 +1120,11 @@ const [selectedCustomerOrders, setSelectedCustomerOrders] = useState<{
         padding: "16px",
         backgroundColor: "#f8f9fa",
         borderRadius: "8px"
-      }}>
-        <Avatar
+      }}>        <Avatar
           size={50}
           style={{
-            backgroundColor: selectedCustomerOrders.customer.gender === "Nam" ? "#1890ff" : 
-                           selectedCustomerOrders.customer.gender === "Nữ" ? "#ff69b4" : "#8c8c8c",
+            backgroundColor: selectedCustomerOrders.customer.gender === "male" ? "#1890ff" : 
+                           selectedCustomerOrders.customer.gender === "female" ? "#ff69b4" : "#8c8c8c",
             color: "white",
             fontWeight: "bold"
           }}

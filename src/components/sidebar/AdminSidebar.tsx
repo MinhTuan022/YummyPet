@@ -17,6 +17,7 @@ import {
   LogOut,
   HandHelping,
   Store,
+  FolderOpen,
 } from "lucide-react";
 import "./AdminSidebar.scss";
 import images from "../../res/images";
@@ -45,30 +46,24 @@ const AdminSidebar = () => {
       key: "dashboard",
       icon: Home,
       label: "Dashboard",
-      path: "/admin/dashboard",
+      path: "/admin/dashboard2",
     },
     {
       key: "health",
       icon: Store,
       label: "Cửa hàng",
-      hasSubmenu: true,
-      submenu: [
-        {
-          key: "health-records",
-          label: "Đơn hàng tại shop",
-          path: "/admin/in-store/orders",
-        },
-        {
-          key: "vaccinations",
-          label: "Dịch vụ tại shop",
-          path: "/admin/in-store/services",
-        },
-        // {
-        //   key: "treatments",
-        //   label: "Điều trị",
-        //   path: "/admin/health/treatments",
-        // },
-      ],
+      // hasSubmenu: true,
+      path: "pos2",
+
+      // submenu: [
+
+      // ],
+    },
+    {
+      key: "pet-categories",
+      label: "Danh mục",
+      icon: FolderOpen,
+      path: "/admin/pets/categories",
     },
     {
       key: "pets",
@@ -78,19 +73,14 @@ const AdminSidebar = () => {
       submenu: [
         { key: "all-pets", label: "Tất cả thú cưng", path: "/admin/pets" },
         { key: "add-pet", label: "Thêm thú cưng", path: "/admin/pets/add" },
-        {
-          key: "pet-categories",
-          label: "Danh mục",
-          path: "/admin/pets/categories",
-        },
       ],
     },
     {
       key: "orders",
       icon: ShoppingCart,
       label: "Đơn hàng",
-      path: "/admin/orders",
-      badge: "12",
+      path: "/admin/orders2",
+      // badge: "12",
     },
     {
       key: "customers",
@@ -107,14 +97,14 @@ const AdminSidebar = () => {
         {
           key: "all-products",
           label: "Tất cả sản phẩm",
-          path: "/admin/products",
+          path: "/admin/products2",
         },
         // {
         //   key: "add-product",
         //   label: "Thêm sản phẩm",
         //   path: "/admin/products/add",
         // },
-        { key: "inventory", label: "Kho hàng", path: "/admin/categories" },
+        // { key: "inventory", label: "Kho hàng", path: "/admin/categories" },
       ],
     },
     {
@@ -140,7 +130,7 @@ const AdminSidebar = () => {
       key: "reports",
       icon: BarChart3,
       label: "Báo cáo",
-      path: "/admin/reports",
+      path: "/admin/reports2",
     },
     // {
     //   key: "documents",
@@ -157,7 +147,7 @@ const AdminSidebar = () => {
   ];
 
   const filteredMenuItems = menuItems.filter((item) => {
-    if (role === "ADMIN") return true;
+    if (role === "admin") return true;
     return !adminOnlyKeys.includes(item.key); // Nếu không phải ADMIN thì ẩn các mục này
   });
   const handleMenuClick = (
@@ -187,7 +177,7 @@ const AdminSidebar = () => {
         <div className="logo">
           {/* <Heart className="logo-icon" /> */}
           <img src={images.logo_admin} alt="" className="logo-admin" />
-          {!isCollapsed && <span className="logo-text">YmmyPet</span>}
+          {!isCollapsed && <span className="logo-text">YummyPet</span>}
         </div>
         <button
           className="collapse-btn"
@@ -221,7 +211,7 @@ const AdminSidebar = () => {
                     {!isCollapsed && (
                       <>
                         <span className="nav-label">{item.label}</span>
-                        {item.badge && (
+                        {item?.badge && (
                           <span className="nav-badge">{item.badge}</span>
                         )}
                         {item.hasSubmenu && (
@@ -238,7 +228,7 @@ const AdminSidebar = () => {
 
                 {item.hasSubmenu && isExpanded && !isCollapsed && (
                   <ul className="submenu">
-                    {item.submenu.map((subItem) => (
+                    {item.submenu?.map((subItem) => (
                       <li key={subItem.key} className="submenu-item">
                         <div
                           className={`submenu-link ${
