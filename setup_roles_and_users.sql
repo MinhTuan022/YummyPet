@@ -8,9 +8,11 @@
 INSERT INTO roles (name, description, created_at) VALUES 
 ('admin', 'Quản trị viên - Toàn quyền truy cập hệ thống', NOW()),
 ('staff', 'Nhân viên - Quản lý sản phẩm, đơn hàng, khách hàng', NOW()),
-('customer', 'Khách hàng - Mua sắm và sử dụng dịch vụ', NOW())
+('customer', 'Khách hàng - Mua sắm', NOW())
 ON DUPLICATE KEY UPDATE 
     description = VALUES(description);
+
+-- Đã loại bỏ mọi mô tả liên quan đến "sử dụng dịch vụ" khỏi role customer
 
 -- Kiểm tra kết quả
 SELECT * FROM roles WHERE name IN ('admin', 'staff', 'customer');

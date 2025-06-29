@@ -7,7 +7,6 @@ import com.example.yummypet.dto.response.GrowthStatisticsDTO;
 import com.example.yummypet.dto.response.MonthlySalesDTO;
 import com.example.yummypet.dto.response.ProductStatisticsDTO;
 import com.example.yummypet.dto.response.SalesStatisticsDTO;
-import com.example.yummypet.dto.response.ServiceStatisticsDTO;
 import com.example.yummypet.service.StatisticsService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -70,13 +69,6 @@ public class StatisticsController {
     public ResponseEntity<ApiResponse<ProductStatisticsDTO>> getInventoryStatistics() {
         ProductStatisticsDTO statistics = statisticsService.getInventoryStatistics();
         return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thống kê tồn kho thành công", statistics));
-    }
-
-    @GetMapping("/services")
-    @PreAuthorize("hasAnyAuthority('admin', 'staff')")
-    public ResponseEntity<ApiResponse<List<ServiceStatisticsDTO>>> getServiceStatistics() {
-        List<ServiceStatisticsDTO> statistics = statisticsService.getServiceStatistics();
-        return ResponseEntity.ok(new ApiResponse<>(true, "Lấy thống kê dịch vụ thành công", statistics));
     }
 
     @GetMapping("/sales/monthly")

@@ -13,7 +13,7 @@ DROP TABLE IF EXISTS product_images;
 DROP TABLE IF EXISTS pet_images;
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS pets;
-DROP TABLE IF EXISTS services;
+-- Đã loại bỏ bảng services (dịch vụ) khỏi hệ thống
 DROP TABLE IF EXISTS vouchers;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS customers;
@@ -162,18 +162,6 @@ CREATE TABLE pet_images (
     is_primary BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (pet_id) REFERENCES pets(id)
-);
-
--- Tạo bảng services
-CREATE TABLE services (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    description TEXT,
-    price DECIMAL(10, 2) NOT NULL,
-    duration_minutes INT,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Tạo bảng vouchers
@@ -337,7 +325,6 @@ INSERT INTO categories (name, description, parent_id, category_type) VALUES
 ('Thức ăn', 'Các loại thức ăn cho thú cưng', NULL, 'product'),
 ('Phụ kiện', 'Phụ kiện cho thú cưng', NULL, 'product'),
 ('Thú cưng', 'Các loại thú cưng', NULL, 'pet'),
-('Dịch vụ', 'Các loại dịch vụ cho thú cưng', NULL, 'service'),
 
 -- Danh mục con cho thức ăn
 ('Thức ăn cho chó', 'Thức ăn dành cho chó', 1, 'product'),
@@ -357,14 +344,7 @@ INSERT INTO categories (name, description, parent_id, category_type) VALUES
 ('Mèo', 'Các loại mèo cưng', 3, 'pet'),
 ('Cá cảnh', 'Các loại cá cảnh', 3, 'pet'),
 ('Chim cảnh', 'Các loại chim cảnh', 3, 'pet'),
-('Hamster', 'Chuột hamster', 3, 'pet'),
-
--- Danh mục con cho dịch vụ
-('Cắt tỉa lông', 'Dịch vụ cắt tỉa lông', 4, 'service'),
-('Tắm, vệ sinh', 'Dịch vụ tắm và vệ sinh', 4, 'service'),
-('Khám và điều trị', 'Dịch vụ khám và điều trị bệnh', 4, 'service'),
-('Huấn luyện', 'Dịch vụ huấn luyện thú cưng', 4, 'service'),
-('Khách sạn thú cưng', 'Dịch vụ trông giữ thú cưng', 4, 'service');
+('Hamster', 'Chuột hamster', 3, 'pet');
 
 -- Thêm products
 INSERT INTO products (category_id, name, description, price, cost_price, stock_quantity, min_stock_level, sku, brand, image_url) VALUES
@@ -416,19 +396,6 @@ INSERT INTO product_images (product_id, image_url, is_primary) VALUES
 (8, 'products/cat_toy_mouse.jpg', true),
 (9, 'products/pet_bowl.jpg', true);
 
--- Thêm dịch vụ
-INSERT INTO services (name, description, price, duration_minutes) VALUES
-('Tắm, vệ sinh cho chó nhỏ', 'Dịch vụ tắm và vệ sinh toàn diện cho chó dưới 10kg', 150000, 60),
-('Tắm, vệ sinh cho chó lớn', 'Dịch vụ tắm và vệ sinh toàn diện cho chó trên 10kg', 250000, 90),
-('Cắt tỉa lông cho chó nhỏ', 'Dịch vụ cắt tỉa lông theo yêu cầu cho chó dưới 10kg', 250000, 120),
-('Cắt tỉa lông cho chó lớn', 'Dịch vụ cắt tỉa lông theo yêu cầu cho chó trên 10kg', 350000, 150),
-('Tắm, vệ sinh cho mèo', 'Dịch vụ tắm và vệ sinh toàn diện cho mèo', 200000, 60),
-('Cắt tỉa lông cho mèo', 'Dịch vụ cắt tỉa lông cho mèo', 280000, 120),
-('Khám sức khỏe tổng quát', 'Dịch vụ khám sức khỏe tổng quát cho thú cưng', 300000, 30),
-('Điều trị ngoại ký sinh', 'Dịch vụ điều trị ve, rận, bọ chét cho thú cưng', 200000, 30),
-('Tiêm phòng vắc xin', 'Dịch vụ tiêm phòng vắc xin cho thú cưng', 350000, 15),
-('Trông giữ thú cưng (theo ngày)', 'Dịch vụ trông giữ thú cưng theo ngày', 150000, 1440);
-
 -- Thêm vouchers
 INSERT INTO vouchers (code, name, discount_type, discount_value, min_order_amount, max_discount_amount, usage_limit, start_date, end_date) VALUES
 ('WELCOME10', 'Giảm 10% cho khách hàng mới', 'PERCENT', 10, 500000, 100000, 100, '2025-06-01 00:00:00', '2025-07-01 23:59:59'),
@@ -469,14 +436,12 @@ INSERT INTO order_items (order_id, item_type, product_id, pet_id, service_id, qu
 (2, 'product', 5, NULL, NULL, 1, 450000, 450000, '2025-06-16 15:45:00'),
 (2, 'product', 6, NULL, NULL, 1, 125000, 125000, '2025-06-16 15:45:00'),
 (2, 'product', 8, NULL, NULL, 1, 80000, 80000, '2025-06-16 15:45:00'),
-(2, 'service', NULL, NULL, 5, 1, 200000, 200000, '2025-06-16 15:45:00'),
 
 -- Đơn hàng 3
 (3, 'pet', NULL, 2, NULL, 1, 12000000, 12000000, '2025-06-18 09:15:00'),
 (3, 'product', 7, NULL, NULL, 1, 150000, 150000, '2025-06-18 09:15:00'),
 (3, 'product', 9, NULL, NULL, 2, 120000, 240000, '2025-06-18 09:15:00'),
 (3, 'product', 2, NULL, NULL, 1, 120000, 120000, '2025-06-18 09:15:00'),
-(3, 'service', NULL, NULL, 3, 1, 250000, 250000, '2025-06-18 09:15:00'),
 
 -- Đơn hàng 4 (khách vãng lai có thông tin)
 (4, 'service', NULL, NULL, 1, 1, 150000, 150000, '2025-06-19 11:20:00'),

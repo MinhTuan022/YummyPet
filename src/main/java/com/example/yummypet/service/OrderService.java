@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -34,10 +33,7 @@ public class OrderService {
     private final VoucherRepository voucherRepository;
     private final ProductRepository productRepository;
     private final PetRepository petRepository;
-    private final ServiceRepository serviceRepository;
-    private final EmployeeRepository employeeRepository;
     private final OrderItemRepository orderItemRepository;
-
     private final CodeGeneratorService codeGeneratorService;
     private final LoyaltyPointService loyaltyPointService;
     private final InventoryService inventoryService;
@@ -162,72 +158,29 @@ public class OrderService {
         orderItem.setUnitPrice(request.getUnitPrice());
         orderItem.setTotalPrice(request.getUnitPrice().multiply(BigDecimal.valueOf(request.getQuantity())));
         orderItem.setCreatedAt(new Timestamp(System.currentTimeMillis()));
-
         switch (request.getItemType()) {
             case product -> {
                 Product product = productRepository.findById(request.getProductId())
                         .orElseThrow(() -> new EntityNotFoundException("Sản phẩm không tồn tại"));
-
                 if (!product.getIsActive()) {
                     throw new IllegalArgumentException("Sản phẩm đã ngừng kinh doanh");
                 }
-
                 if (product.getStockQuantity() < request.getQuantity()) {
                     throw new IllegalArgumentException("Số lượng sản phẩm không đủ");
                 }
-
                 orderItem.setProduct(product);
             }
             case pet -> {
                 Pet pet = petRepository.findById(request.getPetId())
                         .orElseThrow(() -> new EntityNotFoundException("Thú cưng không tồn tại"));
-
                 if (!pet.getIsActive() || pet.getStatus() != PetStatus.available) {
                     throw new IllegalArgumentException("Thú cưng không có sẵn để bán");
                 }
-
                 orderItem.setPet(pet);
                 orderItem.setQuantity(1);
             }
-            case service -> {
-                com.example.yummypet.entity.Service service = serviceRepository.findById(request.getServiceId())
-                        .orElseThrow(() -> new EntityNotFoundException("Dịch vụ không tồn tại"));
-
-                if (!service.getIsActive()) {
-                    throw new IllegalArgumentException("Dịch vụ đã ngừng cung cấp");
-                }
-
-                orderItem.setService(service);
-
-                // Xử lý thời gian dự kiến hoàn thành dịch vụ
-                if (request.getCompletionDate() != null) {
-                    orderItem.setCompletionDate(request.getCompletionDate().toLocalDateTime());
-                } else {
-                    // Tự động tính toán thời gian dự kiến hoàn thành dựa trên thời lượng dịch vụ
-                    LocalDateTime now = LocalDateTime.now();
-
-                    int durationMinutes = (request.getEstimatedDuration() != null)
-                            ? request.getEstimatedDuration()
-                            : (service.getDurationMinutes() != null ? service.getDurationMinutes() : 60); // Mặc định 60
-                                                                                                          // phút
-
-                    LocalDateTime estimatedCompletion = now.plusMinutes(durationMinutes);
-                    orderItem.setCompletionDate(estimatedCompletion);
-
-                    log.info("Tự động tính thời gian hoàn thành dịch vụ: {} phút, hoàn thành vào {}",
-                            durationMinutes, estimatedCompletion);
-                }
-
-                orderItem.setServiceNotes(request.getServiceNotes());
-                if (request.getAssignedEmployeeId() != null) {
-                    Employee employee = employeeRepository.findById(request.getAssignedEmployeeId())
-                            .orElseThrow(() -> new EntityNotFoundException("Nhân viên không tồn tại"));
-                    orderItem.setAssignedEmployee(employee);
-                }
-
-            }
+            // Đã loại bỏ case service
         }
-
         orderItemRepository.save(orderItem);
     }
 
@@ -322,8 +275,6 @@ public class OrderService {
         switch (newStatus) {
             case confirmed -> {
                 inventoryService.updateInventoryAfterOrder(order);
-
-                updateServiceItemsStatus(order, ServiceStatus.in_progress);
             }
             case processing -> {
             }
@@ -336,8 +287,6 @@ public class OrderService {
 
                     inventoryService.updateInventoryAfterOrder(order);
                     log.info("Updated inventory for direct completion of guest order: {}", order.getOrderCode());
-
-                    updateServiceItemsStatus(order, ServiceStatus.completed);
                 }
 
                 if (order.getPaymentStatus() == PaymentStatus.paid && order.getCustomer() != null) {
@@ -345,7 +294,6 @@ public class OrderService {
                 }
 
                 if (oldStatus != OrderStatus.pending) {
-                    updateServiceItemsStatus(order, ServiceStatus.completed);
                 }
             }
             case cancelled -> {
@@ -355,36 +303,6 @@ public class OrderService {
                 if (order.getLoyaltyPointsUsed() > 0 && order.getCustomer() != null) {
                     loyaltyPointService.restoreLoyaltyPoints(order.getCustomer(), order.getLoyaltyPointsUsed(), order);
                 }
-
-                updateServiceItemsStatus(order, ServiceStatus.cancelled);
-            }
-        }
-    }
-
-    private void updateServiceItemsStatus(Order order, ServiceStatus status) {
-        if (order.getOrderItems() == null) {
-            return;
-        }
-
-        for (OrderItem item : order.getOrderItems()) {
-            if (item.getItemType() == ItemType.service) {
-                if (item.getServiceStatus() == ServiceStatus.completed ||
-                        item.getServiceStatus() == ServiceStatus.cancelled) {
-                    continue;
-                }
-
-                if (status == ServiceStatus.pending && item.getServiceStatus() == ServiceStatus.in_progress) {
-                    continue;
-                }
-
-                item.setServiceStatus(status);
-
-                if (status == ServiceStatus.completed) {
-                    item.setActualCompletionDate(LocalDateTime.now());
-                }
-
-                orderItemRepository.save(item);
-                log.info("Updated service item {} status to {}", item.getId(), status);
             }
         }
     }
@@ -448,7 +366,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public Page<Order> getOrdersWithPendingServices(Pageable pageable) {
-        return orderRepository.findOrdersWithPendingServices(pageable);
+        throw new UnsupportedOperationException("Dịch vụ đã bị loại bỏ khỏi hệ thống");
     }
 
     @Transactional(readOnly = true)
@@ -459,29 +377,23 @@ public class OrderService {
         if (toDate == null) {
             toDate = LocalDate.now();
         }
-
         Long totalOrders = orderRepository.countOrdersByDateRange(fromDate, toDate);
         Long pendingOrders = orderRepository.countOrdersByStatusAndDateRange(OrderStatus.pending, fromDate, toDate);
         Long completedOrders = orderRepository.countOrdersByStatusAndDateRange(OrderStatus.completed, fromDate, toDate);
         Long cancelledOrders = orderRepository.countOrdersByStatusAndDateRange(OrderStatus.cancelled, fromDate, toDate);
-
         BigDecimal totalRevenue = orderRepository.sumTotalAmountByDateRange(fromDate, toDate);
         if (totalRevenue == null)
             totalRevenue = BigDecimal.ZERO;
-
         BigDecimal averageOrderValue = totalOrders > 0
                 ? totalRevenue.divide(BigDecimal.valueOf(totalOrders), RoundingMode.HALF_UP)
                 : BigDecimal.ZERO;
-
         Long totalCustomers = orderRepository.countDistinctCustomersByDateRange(fromDate, toDate);
-        Long serviceOrders = orderRepository.countOrdersByItemTypeAndDateRange(ItemType.service, fromDate, toDate);
         Long productOrders = orderRepository.countOrdersByItemTypeAndDateRange(ItemType.product, fromDate, toDate);
         Long petOrders = orderRepository.countOrdersByItemTypeAndDateRange(ItemType.pet, fromDate, toDate);
-
         return new OrderStatisticsResponse(
                 totalOrders, pendingOrders, completedOrders, cancelledOrders,
                 totalRevenue, averageOrderValue, totalCustomers,
-                serviceOrders, productOrders, petOrders);
+                productOrders, petOrders);
     }
 
     @Transactional
@@ -523,10 +435,6 @@ public class OrderService {
 
         BigDecimal subtotal = BigDecimal.ZERO;
         for (OrderItemRequest itemRequest : request.getItems()) {
-            if (itemRequest.getItemType() == ItemType.service) {
-                throw new IllegalArgumentException("Đơn hàng online không thể bao gồm dịch vụ");
-            }
-
             BigDecimal itemTotal = itemRequest.getUnitPrice()
                     .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
             subtotal = subtotal.add(itemTotal);

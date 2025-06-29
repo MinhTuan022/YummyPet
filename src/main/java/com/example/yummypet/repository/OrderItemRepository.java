@@ -2,7 +2,6 @@ package com.example.yummypet.repository;
 
 import com.example.yummypet.entity.OrderItem;
 import com.example.yummypet.enums.ItemType;
-import com.example.yummypet.enums.ServiceStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -30,18 +29,4 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Integer> {
             "ORDER BY total_quantity DESC", nativeQuery = true)
     List<Object[]> findTopSellingProducts(@Param("fromDate") LocalDateTime fromDate, Pageable pageable);
 
- 
-    @Query(value = "SELECT s.id, s.name, " +
-            "COUNT(oi.id) AS total_bookings, " +
-            "SUM(CASE WHEN oi.service_status = 'completed' THEN 1 ELSE 0 END) AS completed_bookings, " +
-            "SUM(CASE WHEN oi.service_status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_bookings, " +
-            "SUM(oi.unit_price * oi.quantity) AS total_revenue " +
-            "FROM order_items oi " +
-            "JOIN services s ON oi.service_id = s.id " +
-            "JOIN orders o ON oi.order_id = o.id " +
-            "WHERE oi.item_type = 'service' " +
-            "AND o.created_at >= :fromDate " +
-            "GROUP BY s.id, s.name " +
-            "ORDER BY total_bookings DESC", nativeQuery = true)
-    List<Object[]> findServiceBookingStats(@Param("fromDate") LocalDateTime fromDate);
 }

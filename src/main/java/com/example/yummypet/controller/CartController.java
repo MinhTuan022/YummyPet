@@ -185,7 +185,6 @@ public class CartController {
 
             UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
             User currentUser = userDetails.getUser();
-            // Validate đơn hàng
             if (request.getDeliveryAddress() == null || request.getDeliveryAddress().trim().isEmpty()) {
                 throw new BadRequestException("Địa chỉ giao hàng không được để trống");
             }
@@ -204,7 +203,6 @@ public class CartController {
         } catch (Exception e) {
             log.error("Error during checkout: {}", e.getMessage(), e);
 
-            // Kiểm tra lỗi transaction rollback
             if (e.getMessage() != null &&
                     (e.getMessage().contains("rollback-only") ||
                             e.getMessage().contains("transaction silently rolled back"))) {
@@ -214,7 +212,6 @@ public class CartController {
                                 "Lỗi xử lý giao dịch. Vui lòng thử lại sau một vài giây.", null));
             }
 
-            // Các lỗi khác
             String errorMessage = e.getMessage() != null ? e.getMessage() : "Lỗi không xác định khi thanh toán";
             return ResponseEntity.badRequest()
                     .body(new ApiResponse<>(false, errorMessage, null));

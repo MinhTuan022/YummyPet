@@ -15,7 +15,6 @@ public class DashboardStatisticsDTO {
     private SalesStatisticsDTO salesStatistics;
     private CustomerStatisticsDTO customerStatistics;
     private Long totalProducts;
-    private Long totalServices;
     private Long totalEmployees;
     
     private BigDecimal todayRevenue;
@@ -23,5 +22,4 @@ public class DashboardStatisticsDTO {
     private Long todayNewCustomers;
     
     private ProductStatisticsDTO topSellingProduct;
-    private ServiceStatisticsDTO mostBookedService;
 }

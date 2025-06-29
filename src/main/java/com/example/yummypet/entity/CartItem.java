@@ -38,10 +38,6 @@ public class CartItem {
     @JoinColumn(name = "pet_id")
     private Pet pet;
     
-    @ManyToOne
-    @JoinColumn(name = "service_id")
-    private Service service;
-    
     @Column(name = "quantity", nullable = false)
     private Integer quantity;
     

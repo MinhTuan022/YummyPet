@@ -21,8 +21,6 @@ public class CartItemRequest {
     
     private Integer petId;
     
-    private Integer serviceId;
-    
     @NotNull(message = "Số lượng không được để trống")
     @Min(value = 1, message = "Số lượng phải lớn hơn 0")
     private Integer quantity;

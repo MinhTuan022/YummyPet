@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 
 @Data
 public class OrderItemRequest {
@@ -24,18 +23,4 @@ public class OrderItemRequest {
     
     // For pet items (khi mua/bán thú cưng)
     private Integer petId;
-        // For service items (ghi nhận dịch vụ)
-    private Integer serviceId;
-      /**
-     * - Trường này CHỈ áp dụng cho đơn hàng dịch vụ tại cửa hàng (in-store)
-     * - KHÔNG áp dụng cho đơn hàng online (vì đơn hàng online không hỗ trợ dịch vụ)
-     */
-    private Timestamp completionDate;
-    
-    // Mô tả về dịch vụ, bao gồm cả thông tin thú cưng của khách vãng lai
-    private String serviceNotes;
-    private Integer assignedEmployeeId;
-    
-    // Thời gian dự kiến hoàn thành (phút) - nếu muốn ghi đè thời gian mặc định của dịch vụ
-    private Integer estimatedDuration;
 }

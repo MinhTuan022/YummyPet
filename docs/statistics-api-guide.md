@@ -1,7 +1,7 @@
 # API Thống kê - YummyPet
 
 ## Tổng quan
-API này cung cấp các endpoint để lấy thống kê về doanh thu, khách hàng, sản phẩm, dịch vụ và nhân viên trong hệ thống YummyPet.
+API này cung cấp các endpoint để lấy thống kê về doanh thu, khách hàng, sản phẩm và nhân viên trong hệ thống YummyPet.
 
 ## Authentication
 Tất cả các API đều yêu cầu JWT token trong header:
@@ -51,7 +51,6 @@ GET /api/statistics/dashboard
             "totalLoyaltyPointsRedeemed": 15000
         },
         "totalProducts": 200,
-        "totalServices": 15,
         "totalEmployees": 8,
         "todayRevenue": 2000000,
         "todayOrders": 8,
@@ -64,15 +63,6 @@ GET /api/statistics/dashboard
             "stockQuantity": 50,
             "revenue": 15000000,
             "profit": 3000000
-        },
-        "mostBookedService": {
-            "serviceId": 1,
-            "serviceName": "Tắm rửa cho chó",
-            "totalBookings": 80,
-            "completedBookings": 75,
-            "cancelledBookings": 5,
-            "completionRate": 93.75,
-            "totalRevenue": 8000000
         }
     }
 }
@@ -215,11 +205,11 @@ GET /api/statistics/products/inventory
 
 ---
 
-## 6. Thống kê dịch vụ
+## 6. Thống kê nhân viên
 
 ### Endpoint
 ```
-GET /api/statistics/services
+GET /api/statistics/employees
 ```
 
 ### Quyền truy cập
@@ -229,25 +219,21 @@ GET /api/statistics/services
 ```json
 {
     "success": true,
-    "message": "Lấy thống kê dịch vụ thành công",
+    "message": "Lấy thống kê nhân viên thành công",
     "data": [
         {
-            "serviceId": 1,
-            "serviceName": "Tắm rửa cho chó",
-            "totalBookings": 80,
-            "completedBookings": 75,
-            "cancelledBookings": 5,
-            "completionRate": 93.75,
-            "totalRevenue": 8000000
+            "employeeId": 1,
+            "employeeName": "Nguyễn Văn A",
+            "totalSales": 20000000,
+            "totalOrders": 75,
+            "averageOrderValue": 266666.67
         },
         {
-            "serviceId": 2,
-            "serviceName": "Cắt tỉa lông",
-            "totalBookings": 60,
-            "completedBookings": 55,
-            "cancelledBookings": 5,
-            "completionRate": 91.67,
-            "totalRevenue": 9000000
+            "employeeId": 2,
+            "employeeName": "Trần Thị B",
+            "totalSales": 15000000,
+            "totalOrders": 50,
+            "averageOrderValue": 300000
         }
     ]
 }

@@ -1,4 +1,3 @@
-
 ## 1. API quản lý sản phẩm (Product)
 
 | Phương thức | Endpoint | Mô tả | Quyền truy cập |
@@ -23,15 +22,7 @@
 | GET | `/api/pets/{id}/images` | Lấy danh sách hình ảnh của thú cưng | Public |
 | POST | `/api/pets/{id}/images` | Thêm hình ảnh cho thú cưng | Admin, Staff |
 
-## 3. API quản lý dịch vụ (Service)
-
-| Phương thức | Endpoint | Mô tả | Quyền truy cập |
-|------------|----------|-------|---------------|
-| GET | `/api/services` | Lấy danh sách tất cả dịch vụ | Public |
-| GET | `/api/services/{id}` | Xem chi tiết một dịch vụ | Public |
-| POST | `/api/services` | Thêm dịch vụ mới | Admin |
-| PUT | `/api/services/{id}` | Cập nhật thông tin dịch vụ | Admin |
-| DELETE | `/api/services/{id}` | Xóa hoặc vô hiệu hóa dịch vụ | Admin |
+<!-- Chức năng dịch vụ (service) đã bị loại bỏ hoàn toàn khỏi hệ thống từ 29/06/2025. Tất cả các API, endpoint, logic, tài liệu liên quan đến dịch vụ đều không còn hiệu lực. -->
 
 ## 4. API quản lý danh mục (Category)
 
@@ -85,9 +76,8 @@
 | GET | `/api/reports/products` | Báo cáo sản phẩm bán chạy | Admin |
 | GET | `/api/reports/inventory` | Báo cáo tình trạng tồn kho | Admin |
 | GET | `/api/reports/customers` | Báo cáo về khách hàng thân thiết | Admin |
-| GET | `/api/reports/services` | Báo cáo về dịch vụ được sử dụng | Admin |
 
-## 9. API quản lý đánh giá (Review) - Chưa thấy trong controller
+## 9. API quản lý đánh giá (Review) - Chỉ còn đánh giá sản phẩm
 
 | Phương thức | Endpoint | Mô tả | Quyền truy cập |
 |------------|----------|-------|---------------|
@@ -95,8 +85,6 @@
 | POST | `/api/reviews/products/{productId}` | Thêm đánh giá cho sản phẩm | Customer (đã mua) |
 | PUT | `/api/reviews/{id}` | Sửa đánh giá | Customer (chủ đánh giá) |
 | DELETE | `/api/reviews/{id}` | Xóa đánh giá | Customer (chủ đánh giá), Admin |
-| GET | `/api/reviews/services/{serviceId}` | Xem đánh giá của dịch vụ | Public |
-| POST | `/api/reviews/services/{serviceId}` | Thêm đánh giá cho dịch vụ | Customer (đã sử dụng) |
 
 ## 10. API quản lý điểm tích lũy (Loyalty Point)
 

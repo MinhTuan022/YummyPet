@@ -16,8 +16,7 @@ Tài liệu này mô tả chi tiết các API đặt hàng trong hệ thống Yu
 ### Phân loại theo loại mặt hàng
 1. **Sản phẩm (Product)**: Thức ăn, đồ chơi, phụ kiện cho thú cưng
 2. **Thú cưng (Pet)**: Mua bán thú cưng (mèo, chó, v.v.)
-3. **Dịch vụ (Service)**: Dịch vụ tắm, cắt lông, khám bệnh, v.v.
-4. **Hỗn hợp**: Kết hợp nhiều loại mặt hàng trong một đơn hàng
+<!-- Chức năng dịch vụ (Service) đã bị loại bỏ hoàn toàn khỏi hệ thống từ 29/06/2025. Tất cả các API, endpoint, logic, tài liệu liên quan đến dịch vụ đều không còn hiệu lực. -->
 
 ## II. API đặt hàng
 
@@ -94,7 +93,9 @@ Tài liệu này mô tả chi tiết các API đặt hàng trong hệ thống Yu
 
 ### B. Đơn hàng trực tuyến (Online)
 
-> **CHÚ Ý QUAN TRỌNG**: Đơn hàng online **CHỈ HỖ TRỢ** mua sản phẩm (`itemType: "product"`) và/hoặc thú cưng (`itemType: "pet"`). Đơn hàng online **KHÔNG HỖ TRỢ** đặt dịch vụ (`itemType: "service"`). Dịch vụ chỉ có thể được đặt trực tiếp tại cửa hàng.
+> **CHÚ Ý QUAN TRỌNG**: Đơn hàng online **CHỈ HỖ TRỢ** mua sản phẩm (`itemType: "product"`) và/hoặc thú cưng (`itemType: "pet"`).
+> 
+> **Chức năng dịch vụ (service) đã bị loại bỏ hoàn toàn khỏi hệ thống.**
 
 #### 1. Đơn hàng online cho khách có tài khoản
 

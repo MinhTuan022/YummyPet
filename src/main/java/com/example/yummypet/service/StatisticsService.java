@@ -2,13 +2,9 @@ package com.example.yummypet.service;
 
 import com.example.yummypet.dto.response.*;
 import com.example.yummypet.entity.*;
-import com.example.yummypet.enums.ItemType;
-import com.example.yummypet.enums.OrderStatus;
-import com.example.yummypet.enums.ServiceStatus;
 import com.example.yummypet.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -17,10 +13,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,25 +23,19 @@ public class StatisticsService {
     private final OrderItemRepository orderItemRepository;
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
-    private final ServiceRepository serviceRepository;
     private final EmployeeRepository employeeRepository;
-    private final LoyaltyPointHistoryRepository loyaltyPointHistoryRepository;
 
     @Autowired
     public StatisticsService(OrderRepository orderRepository,
             OrderItemRepository orderItemRepository,
             CustomerRepository customerRepository,
             ProductRepository productRepository,
-            ServiceRepository serviceRepository,
-            EmployeeRepository employeeRepository,
-            LoyaltyPointHistoryRepository loyaltyPointHistoryRepository) {
+            EmployeeRepository employeeRepository) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
-        this.serviceRepository = serviceRepository;
         this.employeeRepository = employeeRepository;
-        this.loyaltyPointHistoryRepository = loyaltyPointHistoryRepository;
     }
 
 
@@ -56,7 +43,6 @@ public class StatisticsService {
         LocalDateTime today = LocalDate.now().atStartOfDay();
         LocalDateTime tomorrow = today.plusDays(1);
         LocalDateTime monthStart = YearMonth.now().atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = YearMonth.now().atEndOfMonth().plusDays(1).atStartOfDay();
 
         SalesStatisticsDTO salesStatistics = getSalesStatisticsInternal(monthStart, tomorrow);
 
@@ -68,10 +54,7 @@ public class StatisticsService {
 
         ProductStatisticsDTO topSellingProduct = getTopSellingProduct();
 
-        ServiceStatisticsDTO mostBookedService = getMostBookedService();
-
         Long totalProducts = productRepository.count();
-        Long totalServices = serviceRepository.count();
         Long totalEmployees = employeeRepository.count();
 
         return DashboardStatisticsDTO.builder()
@@ -81,9 +64,7 @@ public class StatisticsService {
                 .todayOrders(todayOrders)
                 .todayNewCustomers(todayNewCustomers)
                 .topSellingProduct(topSellingProduct)
-                .mostBookedService(mostBookedService)
                 .totalProducts(totalProducts)
-                .totalServices(totalServices)
                 .totalEmployees(totalEmployees)
                 .build();
     }
@@ -104,9 +85,8 @@ public class StatisticsService {
         Long totalOrders = orderRepository.countByCreatedAtBetween(startDateTime, endDateTime);
 
         LocalDateTime monthStart = YearMonth.now().atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = YearMonth.now().atEndOfMonth().plusDays(1).atStartOfDay();
-        BigDecimal monthlyRevenue = orderRepository.sumTotalAmountByCreatedAtBetween(monthStart, monthEnd);
-        Long monthlyOrders = orderRepository.countByCreatedAtBetween(monthStart, monthEnd);
+        BigDecimal monthlyRevenue = orderRepository.sumTotalAmountByCreatedAtBetween(monthStart, monthStart.plusMonths(1));
+        Long monthlyOrders = orderRepository.countByCreatedAtBetween(monthStart, monthStart.plusMonths(1));
 
         LocalDateTime today = LocalDate.now().atStartOfDay();
         LocalDateTime tomorrow = today.plusDays(1);
@@ -162,8 +142,7 @@ public class StatisticsService {
         Long totalCustomers = customerRepository.count();
 
         LocalDateTime monthStart = YearMonth.now().atDay(1).atStartOfDay();
-        LocalDateTime monthEnd = YearMonth.now().atEndOfMonth().plusDays(1).atStartOfDay();
-        Long newCustomersThisMonth = customerRepository.countNewCustomersBetween(monthStart, monthEnd);
+        Long newCustomersThisMonth = customerRepository.countNewCustomersBetween(monthStart, monthStart.plusMonths(1));
 
         LocalDateTime thirtyDaysAgo = LocalDate.now().minusDays(30).atStartOfDay();
         Long activeCustomers = customerRepository.countActiveCustomersSince(thirtyDaysAgo);
@@ -236,54 +215,6 @@ public class StatisticsService {
                 .totalProducts(totalProducts.intValue())
                 .lowStockCount(lowStockCount)
                 .build();
-    }
-
-
-    public List<ServiceStatisticsDTO> getServiceStatistics() {
-        LocalDateTime threeMonthsAgo = LocalDate.now().minusMonths(3).atStartOfDay();
-        List<Object[]> serviceStats = orderItemRepository.findServiceBookingStats(threeMonthsAgo);
-
-        Long totalServices = serviceRepository.count();
-
-        return serviceStats.stream()
-                .map(row -> mapToServiceStatistics(row, totalServices.intValue()))
-                .collect(Collectors.toList());
-    }
-
-    private ServiceStatisticsDTO mapToServiceStatistics(Object[] row, Integer totalServices) {
-        Integer serviceId = (Integer) row[0];
-        String serviceName = (String) row[1];
-        Long totalBookings = ((Number) row[2]).longValue();
-        Long completedBookings = ((Number) row[3]).longValue();
-        Long cancelledBookings = ((Number) row[4]).longValue();
-
-        Double completionRate = 0.0;
-        if (totalBookings > 0) {
-            completionRate = (completedBookings.doubleValue() / totalBookings.doubleValue()) * 100;
-        }
-
-        return ServiceStatisticsDTO.builder()
-                .serviceId(serviceId)
-                .serviceName(serviceName)
-                .totalBookings(totalBookings)
-                .completedBookings(completedBookings)
-                .cancelledBookings(cancelledBookings)
-                .completionRate(completionRate)
-                .totalServices(totalServices)
-                .build();
-    }
-
-    /**
-     * Lấy dịch vụ được đặt nhiều nhất
-     */
-    private ServiceStatisticsDTO getMostBookedService() {
-        Long totalServices = serviceRepository.count();
-        List<ServiceStatisticsDTO> services = getServiceStatistics();
-        return services.stream()
-                .max(Comparator.comparing(ServiceStatisticsDTO::getTotalBookings))
-                .orElse(ServiceStatisticsDTO.builder()
-                        .totalServices(totalServices.intValue())
-                        .build());
     }
 
     /**

@@ -13,9 +13,8 @@ import java.util.Optional;
 public interface CartItemRepository extends JpaRepository<CartItem, Integer> {
 
     @Query("SELECT ci FROM CartItem ci WHERE ci.cart.id = :cartId AND ci.itemType = :itemType " +
-           "AND (:itemType = 'product' AND ci.product.id = :itemId " +
-           "OR :itemType = 'pet' AND ci.pet.id = :itemId " +
-           "OR :itemType = 'service' AND ci.service.id = :itemId)")
+           "AND ((:itemType = 'product' AND ci.product.id = :itemId) " +
+           "OR (:itemType = 'pet' AND ci.pet.id = :itemId))")
     Optional<CartItem> findByCartIdAndItemTypeAndItemId(Integer cartId, ItemType itemType, Integer itemId);
 
     @Modifying

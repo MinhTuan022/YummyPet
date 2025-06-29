@@ -44,9 +44,7 @@ public interface OrderRepository extends JpaRepository<Order, Integer> {
     @Query(value = "SELECT * FROM orders o ORDER BY o.created_at DESC LIMIT :limit", nativeQuery = true)
     List<Order> findRecentOrders(@Param("limit") int limit);
     
-    @Query("SELECT DISTINCT o FROM Order o JOIN o.orderItems i " +
-            "WHERE i.itemType = com.example.yummypet.enums.ItemType.service " +
-            "AND i.serviceStatus <> com.example.yummypet.enums.ServiceStatus.completed")
+    @Query("SELECT DISTINCT o FROM Order o JOIN o.orderItems i WHERE 1=0")
     Page<Order> findOrdersWithPendingServices(Pageable pageable);
     
     @Query("SELECT COUNT(o) FROM Order o " +

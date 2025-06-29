@@ -2,26 +2,17 @@ package com.example.yummypet.service;
 
 import com.example.yummypet.dto.request.OrderCreateRequest;
 import com.example.yummypet.dto.request.OrderItemRequest;
-import com.example.yummypet.dto.request.OrderUpdateRequest;
-import com.example.yummypet.dto.response.OrderStatisticsResponse;
 import com.example.yummypet.entity.*;
 import com.example.yummypet.enums.*;
 import com.example.yummypet.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Slf4j
 @Service
@@ -33,13 +24,10 @@ public class OrderServiceUpdated {
     private final VoucherRepository voucherRepository;
     private final ProductRepository productRepository;
     private final PetRepository petRepository;
-    private final ServiceRepository serviceRepository;
-    private final EmployeeRepository employeeRepository;
     private final OrderItemRepository orderItemRepository;
 
     private final CodeGeneratorService codeGeneratorService;
     private final LoyaltyPointService loyaltyPointService;
-    private final InventoryService inventoryService;
     private final VoucherService voucherService;
 
     @Transactional
@@ -207,26 +195,8 @@ public class OrderServiceUpdated {
                 orderItem.setQuantity(1); // Pet is always quantity 1
                 break;
 
-            case service:
-                com.example.yummypet.entity.Service service = serviceRepository.findById(request.getServiceId())
-                        .orElseThrow(() -> new EntityNotFoundException("Dịch vụ không tồn tại"));
-
-                if (!service.getIsActive()) {
-                    throw new IllegalArgumentException("Dịch vụ đã ngừng cung cấp");
-                }
-
-                orderItem.setService(service);
-                if (request.getCompletionDate() != null) {
-                    orderItem.setCompletionDate(request.getCompletionDate().toLocalDateTime());
-                }
-                orderItem.setServiceNotes(request.getServiceNotes());
-                if (request.getAssignedEmployeeId() != null) {
-                    Employee employee = employeeRepository.findById(request.getAssignedEmployeeId())
-                            .orElseThrow(() -> new EntityNotFoundException("Nhân viên không tồn tại"));
-                    orderItem.setAssignedEmployee(employee);
-                }
-
-                break;
+            default:
+                throw new IllegalArgumentException("Loại mặt hàng không được hỗ trợ");
         }
         orderItemRepository.save(orderItem);
     }
@@ -253,15 +223,6 @@ public class OrderServiceUpdated {
                         Pet pet = petRepository.findById(itemRequest.getPetId())
                                 .orElseThrow(() -> new EntityNotFoundException("Thú cưng không tồn tại"));
                         itemRequest.setUnitPrice(pet.getPrice());
-                        break;
-                    case service:
-                        if (itemRequest.getServiceId() == null) {
-                            throw new IllegalArgumentException("Dịch vụ không được để trống");
-                        }
-                        com.example.yummypet.entity.Service service = serviceRepository
-                                .findById(itemRequest.getServiceId())
-                                .orElseThrow(() -> new EntityNotFoundException("Dịch vụ không tồn tại"));
-                        itemRequest.setUnitPrice(service.getPrice());
                         break;
                     default:
                         throw new IllegalArgumentException("Loại mặt hàng không được hỗ trợ");

@@ -1,0 +1,1 @@
+Đã loại bỏ toàn bộ chức năng dịch vụ (service) khỏi hệ thống vào ngày 29/06/2025. Các file mã nguồn, controller, repository, entity, enum, DTO, tài liệu liên quan đến service đã được xóa để đảm bảo hệ thống không còn chức năng này.

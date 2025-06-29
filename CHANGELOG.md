@@ -119,3 +119,12 @@
 - Quản lý khách hàng và nhân viên
 - Xử lý đơn hàng và thanh toán
 - Báo cáo thống kê
+
+## [1.3.x] - 2025-06-29
+
+### BREAKING CHANGE
+- ĐÃ LOẠI BỎ TOÀN BỘ CHỨC NĂNG DỊCH VỤ (SERVICE) KHỎI HỆ THỐNG. Tất cả các API, logic, trường, enum, entity, repository, tài liệu, script, migration, hướng dẫn, kiểm thử, comment liên quan đến dịch vụ đều đã bị xóa hoàn toàn.
+- Các trường, enum, DTO, entity, migration, hướng dẫn, tài liệu, script liên quan đến service/serviceNotes/estimatedDuration/serviceId/serviceStatus/... đều đã bị loại bỏ.
+- Các tài liệu hướng dẫn, migration, testing, API guide liên quan đến dịch vụ đều không còn hiệu lực.
+
+<!-- Đã loại bỏ toàn bộ mục, mô tả, liên kết, comment/documentation liên quan đến service/dịch vụ trong changelog này. -->

@@ -31,9 +31,6 @@ public class CartItemDTO {
     private String petBreed;
     private String petImage;
 
-    private Integer serviceId;
-    private String serviceName;
-
     private Integer quantity;
     private BigDecimal unitPrice;
     private BigDecimal totalPrice;
@@ -69,11 +66,6 @@ public class CartItemDTO {
             dto.setPetSpecies(cartItem.getPet().getSpecies());
             dto.setPetBreed(cartItem.getPet().getBreed());
             dto.setPetImage(null);
-        }
-
-        if (cartItem.getItemType() == ItemType.service && cartItem.getService() != null) {
-            dto.setServiceId(cartItem.getService().getId());
-            dto.setServiceName(cartItem.getService().getName());
         }
 
         return dto;

@@ -15,7 +15,6 @@ public class OrderStatisticsResponse {
     private BigDecimal totalRevenue;
     private BigDecimal averageOrderValue;
     private Long totalCustomers;
-    private Long serviceOrders;
     private Long productOrders;
     private Long petOrders;
 }

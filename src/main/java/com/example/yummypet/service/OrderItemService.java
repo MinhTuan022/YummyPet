@@ -1,13 +1,9 @@
 package com.example.yummypet.service;
 
-import com.example.yummypet.entity.Employee;
 import com.example.yummypet.entity.OrderItem;
 import com.example.yummypet.entity.Pet;
 import com.example.yummypet.entity.Product;
-import com.example.yummypet.enums.ItemType;
 import com.example.yummypet.enums.PetStatus;
-import com.example.yummypet.enums.ServiceStatus;
-import com.example.yummypet.repository.EmployeeRepository;
 import com.example.yummypet.repository.OrderItemRepository;
 import com.example.yummypet.repository.PetRepository;
 import com.example.yummypet.repository.ProductRepository;
@@ -16,7 +12,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -67,54 +62,6 @@ public class OrderItemService {
                     petRepository.save(pet);
                 }
                 default -> {}
-            }
-        }
-    }    private final EmployeeRepository employeeRepository;
-    
-    @Transactional
-    public OrderItem updateServiceStatus(Integer orderItemId, ServiceStatus status, Integer employeeId) {
-        OrderItem item = orderItemRepository.findById(orderItemId)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy mục đơn hàng"));
-        
-        if (item.getItemType() != ItemType.service) {
-            throw new IllegalArgumentException("Mục đơn hàng không phải là dịch vụ");
-        }
-        
-        validateServiceStatusTransition(item.getServiceStatus(), status);
-        
-        item.setServiceStatus(status);
-        
-        if (status == ServiceStatus.completed) {
-            item.setActualCompletionDate(LocalDateTime.now());
-        }
-        
-        if (employeeId != null) {
-            Employee employee = employeeRepository.findById(employeeId)
-                .orElseThrow(() -> new EntityNotFoundException("Nhân viên không tồn tại"));
-            item.setAssignedEmployee(employee);
-        }
-        
-        return orderItemRepository.save(item);
-    }
-    
-    private void validateServiceStatusTransition(ServiceStatus from, ServiceStatus to) {
-        if (from == to) {
-            return;
-        }
-        
-        switch (from) {
-            case pending -> {
-                if (to != ServiceStatus.in_progress && to != ServiceStatus.cancelled) {
-                    throw new IllegalArgumentException("Không thể chuyển từ pending sang " + to);
-                }
-            }
-            case in_progress -> {
-                if (to != ServiceStatus.completed && to != ServiceStatus.cancelled) {
-                    throw new IllegalArgumentException("Không thể chuyển từ in_progress sang " + to);
-                }
-            }
-            case completed, cancelled -> {
-                throw new IllegalArgumentException("Không thể thay đổi trạng thái từ " + from);
             }
         }
     }

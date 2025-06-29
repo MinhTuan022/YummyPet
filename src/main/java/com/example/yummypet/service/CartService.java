@@ -36,13 +36,10 @@ public class CartService {
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
     private final PetRepository petRepository;
-    private final ServiceRepository serviceRepository;
     private final PetImageRepository petImageRepository;
     private final VoucherRepository voucherRepository;
     private final VoucherService voucherService;
     private final OrderService orderService;
-    // private final VoucherRepository voucherRepository;
-    // private final VoucherService voucherService;
 
     public Cart getCartByUser(User user) {
         Customer customer = customerRepository.findByUser(user)
@@ -104,7 +101,6 @@ public class CartService {
         }
     }
 
-  
     @Transactional
     public CartItemDTO updateCartItemQuantity(User user, Integer cartItemId, Integer quantity) {
         if (quantity <= 0) {
@@ -162,8 +158,6 @@ public class CartService {
             throw new BadRequestException("ProductId không được để trống cho loại sản phẩm");
         } else if (request.getItemType() == ItemType.pet && request.getPetId() == null) {
             throw new BadRequestException("PetId không được để trống cho loại thú cưng");
-        } else if (request.getItemType() == ItemType.service && request.getServiceId() == null) {
-            throw new BadRequestException("ServiceId không được để trống cho loại dịch vụ");
         }
 
         if (request.getItemType() == ItemType.product) {
@@ -172,9 +166,6 @@ public class CartService {
         } else if (request.getItemType() == ItemType.pet) {
             petRepository.findById(request.getPetId())
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thú cưng"));
-        } else if (request.getItemType() == ItemType.service) {
-            serviceRepository.findById(request.getServiceId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ"));
         }
 
         if (!validateStock(request)) {
@@ -187,8 +178,6 @@ public class CartService {
             return request.getProductId();
         } else if (request.getItemType() == ItemType.pet) {
             return request.getPetId();
-        } else if (request.getItemType() == ItemType.service) {
-            return request.getServiceId();
         }
         return null;
     }
@@ -212,11 +201,6 @@ public class CartService {
                     .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy thú cưng"));
             newItem.setPet(pet);
             newItem.setUnitPrice(pet.getPrice());
-        } else if (request.getItemType() == ItemType.service) {
-            com.example.yummypet.entity.Service service = serviceRepository.findById(request.getServiceId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy dịch vụ"));
-            newItem.setService(service);
-            newItem.setUnitPrice(service.getPrice());
         }
 
         return newItem;
@@ -345,7 +329,7 @@ public class CartService {
 
         BigDecimal discountAmount = voucherService.calculateDiscount(voucher, cart.getSubtotal());
 
-       
+
 
         CartDTO cartDTO = convertCartToDTO(cart);
         cartDTO.setVoucherId(voucher.getId());
@@ -359,7 +343,7 @@ public class CartService {
     public CartDTO removeVoucher(User user) {
         Cart cart = getCartByUser(user);
 
- 
+
         return convertCartToDTO(cart);
     }
 
@@ -402,9 +386,6 @@ public class CartService {
                             break;
                         case pet:
                             itemRequest.setPetId(cartItem.getPet().getId());
-                            break;
-                        case service:
-                            itemRequest.setServiceId(cartItem.getService().getId());
                             break;
                     }
 
@@ -464,7 +445,7 @@ public class CartService {
         }
     }
 
-  
+
     public void validateInventoryForCheckout(Cart cart) {
         log.info("Validating inventory for checkout, cart: {}", cart.getId());
 
